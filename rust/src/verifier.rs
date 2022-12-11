@@ -1,8 +1,8 @@
-use ark_bls12_381::Bls12_381;
 use ark_ec::group::Group;
 use ark_ec::{PairingEngine, ProjectiveCurve};
 use ark_ff::{BigInteger256, Zero};
-use crate::{ElectionSpecifiers, G1, G2, Vote};
+use crate::curve_abstr::{G1, G2};
+use crate::{curve_abstr, ElectionSpecifiers, Vote};
 use crate::prover::ElectionResult;
 
 pub fn verify_election(election_result: ElectionResult, specifiers: ElectionSpecifiers, census: Vec<G1>) -> bool {
@@ -26,10 +26,10 @@ pub fn verify_election(election_result: ElectionResult, specifiers: ElectionSpec
     }
 
     // Compute the election proof pairing
-    let lhs = Bls12_381::pairing(election_result.proof, G2::prime_subgroup_generator());
+    let lhs = curve_abstr::Curve::pairing(election_result.proof, G2::prime_subgroup_generator());
     // Compute the product of pairing of the sum of keys that voted yes and the yes specifier
     // And the pairing of the sum of keys that voted no and the no specifier
-    let rhs = Bls12_381::pairing(sum_keys_voted_yes, specifiers.yes.1) * Bls12_381::pairing(sum_keys_voted_no, specifiers.no.1);
+    let rhs = curve_abstr::Curve::pairing(sum_keys_voted_yes, specifiers.yes.1) * curve_abstr::Curve::pairing(sum_keys_voted_no, specifiers.no.1);
 
     // If the election proof is valid, the pairing of the election proof and the generator should be equal to the product of the pairings of the sum of keys that voted yes and the yes specifier
     lhs == rhs

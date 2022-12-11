@@ -1,9 +1,11 @@
+use std::fmt;
 use ark_ec::group::Group;
 use ark_ec::ProjectiveCurve;
 use ark_ff::{BigInteger256, PrimeField};
 use ark_std::UniformRand;
-use crate::{ElectionSpecifiers, G1, G2, ScalarField};
 use rand::rngs::ThreadRng;
+use crate::curve_abstr::{G1, ScalarField};
+use crate::{ElectionSpecifiers, SolidityConverter};
 
 
 /**
@@ -80,10 +82,16 @@ pub enum Vote {
  * 2. A proof that the vote is valid
  * 3. Voter public key
  */
-#[derive(Debug)]
 pub struct Ballot {
     pub vote: Vote,
     pub vote_proof: G1,
     pub pbk: G1,
+}
+
+// Overwrite the default Display implementation to print the vote_proof and pbk as affine points
+impl fmt::Display for Ballot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Ballot: Vote: {:?}, Vote proof: {}, Voter public key: {}", self.vote, SolidityConverter::convert_g1(&self.vote_proof), SolidityConverter::convert_g1(&self.pbk))
+    }
 }
 

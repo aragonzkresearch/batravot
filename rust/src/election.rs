@@ -1,7 +1,7 @@
 use ark_ec::ProjectiveCurve;
 use ark_ff::{BigInteger, BigInteger256, Field, PrimeField, Zero};
 use sha256::digest;
-use crate::{G1, G2, ScalarField};
+use crate::curve_abstr::{SolidityConverter, hash, G1, G2};
 
 pub struct ElectionSpecifiers {
     pub(crate) no: (G1, G2),
@@ -27,20 +27,15 @@ impl ElectionSpecifiers {
 
         self.no == recreated_specifiers.no && self.yes == recreated_specifiers.yes
     }
+
+
+    pub fn to_solidity(&self) -> String {
+        format!("{},{},{},{}", SolidityConverter::convert_g1(&self.no.0), SolidityConverter::convert_g2(&self.no.1), SolidityConverter::convert_g1(&self.yes.0), SolidityConverter::convert_g2(&self.yes.1))
+    }
+
+
+
+
+
 }
 
-fn hash(x: &Vec<u8>) -> (G1, G2) {
-    let binding = digest(x.as_slice());
-    let hash = binding.as_bytes();
-
-    let scalar_hash = ScalarField::from_random_bytes(hash).unwrap();
-
-    let g1hash = G1::prime_subgroup_generator().mul(scalar_hash.into_repr());
-    let g2hash = G2::prime_subgroup_generator().mul(scalar_hash.into_repr());
-
-    // Check that the g1hash is not the identity element
-    assert!(g1hash != G1::zero());
-    assert!(g2hash != G2::zero());
-
-    (g1hash, g2hash)
-}
