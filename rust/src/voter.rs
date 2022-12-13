@@ -70,7 +70,7 @@ impl Voter {
 /**
  * A vote is a choice of either yes or no.
  */
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Vote {
     Yes,
     No,
@@ -82,6 +82,7 @@ pub enum Vote {
  * 2. A proof that the vote is valid
  * 3. Voter public key
  */
+#[derive(Clone)]
 pub struct Ballot {
     pub vote: Vote,
     pub vote_proof: G1,

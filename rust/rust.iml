@@ -7,6 +7,8 @@
       <sourceFolder url="file://$MODULE_DIR$/voter/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/voter/target" />
+      <excludeFolder url="file://$MODULE_DIR$/solidity/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/solidity/artifacts" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

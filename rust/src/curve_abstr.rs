@@ -7,6 +7,7 @@ use sha256::digest;
 // Re-export curve to abstract away the curve implementation
 pub use ark_bn254 as curve;
 pub use ark_bn254::Bn254 as Curve;
+use ark_bn254::Fq;
 
 pub use crate::curve_abstr::curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField};
 
@@ -56,18 +57,18 @@ impl SolidityConverter {
         let affine = point.into_affine();
         let x = affine.x;
         let y = affine.y;
-        format!("[{},{}]", SolidityConverter::convert_bi(&x.0), SolidityConverter::convert_bi(&y.0))
+        format!("[{},{}]", SolidityConverter::convert_bi(&x), SolidityConverter::convert_bi(&y))
     }
 
     pub fn convert_g2(point: &G2) -> String {
         let affine = point.into_affine();
         let x = affine.x;
         let y = affine.y;
-        format!("[[{},{}],[{},{}]]", SolidityConverter::convert_bi(&x.c0.0), SolidityConverter::convert_bi(&x.c1.0), SolidityConverter::convert_bi(&y.c0.0), SolidityConverter::convert_bi(&y.c1.0))
+        format!("[[{},{}],[{},{}]]", SolidityConverter::convert_bi(&x.c1), SolidityConverter::convert_bi(&x.c0), SolidityConverter::convert_bi(&y.c1), SolidityConverter::convert_bi(&y.c0))
     }
 
-    fn convert_bi(field: &BigInteger256) -> String {
-        format!("BigNumber.from(\"0x{}\")", field)
+    fn convert_bi(field: &Fq) -> String {
+        format!("BigNumber.from(\'0x{}\')", field).replace("Fp256 \"(", "").replace(")\"", "")
     }
 
 

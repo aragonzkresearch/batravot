@@ -11,7 +11,7 @@ contract BatRaVot {
     enum State { Init, Vote, End }
 
     /** Vote choice **/
-    enum Vote { For, Against }
+    enum Vote { None, For, Against }
 
 
     /** Stores the result of the election **/
@@ -22,7 +22,7 @@ contract BatRaVot {
 
     /** This struct holds the specifiers of the election as both points in G1 and G2 **/
     struct Specifiers {
-        Points.G1 yesG1;
+        Points.G1 yesG1; // TODO - consider removing the G1 specifiers
         Points.G2 yesG2;
         Points.G1 noG1;
         Points.G2 noG2;
@@ -38,15 +38,10 @@ contract BatRaVot {
         ElectionResult result;
     }
 
-    struct Proof {
-        uint8[] S0; // Id of the voters voted against
-        uint8[] S1; // Id of the voters voted for
-        Points.G1 election_proof; // this gamma should correspond to negate(gamma) of the paper
-    }
-
     Election[] public elections;
 
     // The max length of census is 2^256 - 1
+    // TODO - Consider changing to mapping
     Points.G1[] public census;
 
 
@@ -58,11 +53,10 @@ contract BatRaVot {
     function registerInCensus(Points.G1 memory pubKey) public returns (bool) {
         census.push(pubKey);
         // TODO - this needs to have some logic to prevent arbitrary people from entering the census
+        // TODO - we need to check if the public key is already in the census (maybe use a mapping)
+        // TODO - we need to check if the public key has a known private key (use Schnorr signature)
         return true;
     }
-
-
-
 
 
     /**
@@ -96,7 +90,7 @@ contract BatRaVot {
     /**
      * Get specifiers for a running election. Through an error if the election is not running or does not exist.
      */
-    function getSpecifiers(uint256 electionId) public view returns (Points.G1 memory, Points.G1 memory){
+    function getG1Specifiers(uint256 electionId) public view returns (Points.G1 memory, Points.G1 memory){
         require(electionId < elections.length, "Requesting specifiers for election that does not yet exist");
         Election storage election = elections[electionId];
         require(election.state == State.Vote, "Requesting specifiers for election that is not active");
@@ -108,7 +102,7 @@ contract BatRaVot {
         require(electionId < elections.length, "Requesting specifiers for election that does not yet exist");
         Election storage election = elections[electionId];
         require(election.state == State.Vote, "Providing proof for election that is not active");
-        require(votersFor.length > 0 || votersFor.length > 0, "Can not submit a proof for no voters");
+        require(votersFor.length > 0 || votersAgainst.length > 0, "Can not submit a proof for no voters");
 
         Points.G1 memory inFavourKeySum;
         uint256 voterId;
@@ -118,7 +112,7 @@ contract BatRaVot {
             inFavourKeySum = census[votersFor[0]];
             for (uint256 i = 1; i < votersFor.length; i++) {
                 voterId = votersFor[i];
-                inFavourKeySum = Points.pointAdd(inFavourKeySum, census[i]);
+                inFavourKeySum = Points.pointAdd(inFavourKeySum, census[voterId]);
             }
         }
 
@@ -130,22 +124,21 @@ contract BatRaVot {
             againstKeySum = census[votersAgainst[0]];
             for (uint256 i = 1; i < votersAgainst.length; i++) {
                 voterId = votersAgainst[i];
-                againstKeySum = Points.pointAdd(againstKeySum, census[i]);
+                againstKeySum = Points.pointAdd(againstKeySum, census[voterId]);
             }
         }
 
 
-
         if (votersFor.length != 0 && votersAgainst.length != 0) {
             // We do a proof of:
-            // e(-P1,proof)*e(againstKeySum,againstSpecifier)*e(inFavourKeySum,forSpecifier)=1
+            // e(proof, -P2)*e(againstKeySum,againstSpecifier)*e(inFavourKeySum,forSpecifier)=1
             Points.G1[] memory a = new Points.G1[](3);
             Points.G2[] memory b = new Points.G2[](3);
 
             a[0]=electionProof;
             a[1]=againstKeySum;
             a[2]=inFavourKeySum;
-            b[0]=Points.P2Inv();
+            b[0]=Points.P2Neg();
             b[1]=election.specifiers.noG2;
             b[2]=election.specifiers.yesG2;
 
@@ -157,15 +150,16 @@ contract BatRaVot {
             Points.G2[] memory b = new Points.G2[](2);
 
             a[0]=electionProof;
-            b[0]=Points.P2Inv();
+            b[0]=Points.P2Neg();
+
 
             // Pairing depends on if votes are For or Against
-            if (votersFor.length != 0) {
-                a[1]=inFavourKeySum;
-                b[1]=election.specifiers.yesG2;
-            } else {
+            if (votersFor.length == 0) {
                 a[1]=againstKeySum;
                 b[1]=election.specifiers.noG2;
+            } else {
+                a[1]=inFavourKeySum;
+                b[1]=election.specifiers.yesG2;
             }
 
             require(Points.pairing(a,b), "Verification check did not pass");
@@ -193,7 +187,6 @@ contract BatRaVot {
         // Change state of the election to End
         elections[electionId].state = State.End;
 
-        // TODO - check that we can have abstain voters if they have not been initialised
         uint256 against = 0;
         uint256 inFavour = 0;
         // Calculate how everyone has voted and sum up the results to get the final results

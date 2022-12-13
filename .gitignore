@@ -5,4 +5,7 @@
 */.idea/
 */.vscode/
 
+rust/solidity/artifacts/
+rust/solidity/cache/
+
 */.DS_Store

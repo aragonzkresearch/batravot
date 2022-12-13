@@ -30,7 +30,7 @@ impl ElectionSpecifiers {
 
 
     pub fn to_solidity(&self) -> String {
-        format!("{},{},{},{}", SolidityConverter::convert_g1(&self.no.0), SolidityConverter::convert_g2(&self.no.1), SolidityConverter::convert_g1(&self.yes.0), SolidityConverter::convert_g2(&self.yes.1))
+        format!("{},{},{},{}", SolidityConverter::convert_g1(&self.yes.0), SolidityConverter::convert_g2(&self.yes.1), SolidityConverter::convert_g1(&self.no.0), SolidityConverter::convert_g2(&self.no.1))
     }
 
 
