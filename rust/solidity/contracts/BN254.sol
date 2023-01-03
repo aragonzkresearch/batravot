@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-library Points {
+library BN254 {
     struct G1 {
         uint X;
         uint Y;
@@ -12,6 +12,9 @@ library Points {
         uint[2] X;
         uint[2] Y;
     }
+
+    // The order of the generator G1
+    uint256 constant R = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
 
     /**
@@ -93,7 +96,7 @@ library Points {
     }
 
     /// return the sum of two points of G1
-    function pointAdd(G1 memory p1, G1 memory p2) internal returns (G1 memory r) {
+    function pointAdd(G1 memory p1, G1 memory p2) internal view returns (G1 memory r) {
         uint[4] memory input;
         input[0] = p1.X;
         input[1] = p1.Y;
@@ -101,7 +104,7 @@ library Points {
         input[3] = p2.Y;
         bool success;
         assembly {
-            success := call(sub(gas(), 2000), 6, 0, input, 0xc0, r, 0x60)
+            success := staticcall(sub(gas(), 2000), 6, input, 0xc0, r, 0x60)
         // Use "invalid" to make gas estimation work
             switch success case 0 {invalid()}
         }
@@ -110,14 +113,14 @@ library Points {
 
     /// return the product of a point on G1 and a scalar, i.e.
     /// p == p.mul(1) and p.add(p) == p.mul(2) for all points p.
-    function mul(G1 memory p, uint   s) internal returns (G1 memory r) {
+    function mul(G1 memory p, uint   s) internal view returns (G1 memory r) {
         uint[3] memory input;
         input[0] = p.X;
         input[1] = p.Y;
         input[2] = s;
         bool success;
         assembly {
-            success := call(sub(gas(), 2000), 7, 0, input, 0x80, r, 0x60)
+            success := staticcall(sub(gas(), 2000), 7, input, 0x80, r, 0x60)
         // Use "invalid" to make gas estimation work
             switch success case 0 {invalid()}
         }
@@ -127,7 +130,7 @@ library Points {
     /**
      * Hash a message value to the G1 point
      */
-    function hashToG1(bytes memory message) internal returns (G1 memory) {
+    function hashToG1(bytes memory message) internal view returns (G1 memory) {
         uint256 h = uint256(keccak256(message));
 
         G1 memory hG1 = mul(P1(), h);

@@ -1,9 +1,15 @@
+extern crate core;
+
 use std::ops::{Add, Div, Mul, Neg};
-use ark_bn254::Fr;
-use ark_ec::{AffineCurve, PairingEngine, ProjectiveCurve};
-use ark_ff::{BigInteger, BigInteger256, Field, One, PrimeField, Zero};
-use rand::{Rng, thread_rng};
-use crate::curve_abstr::{SolidityConverter, print_curve_params, G1, G2, Curve, curve};
+
+use ark_ec::{PairingEngine, ProjectiveCurve};
+use ark_ff::{BigInteger256, One, PrimeField, Zero};
+use ark_std::UniformRand;
+use rand::{Rng, SeedableRng, thread_rng};
+use rand_chacha::ChaCha8Rng;
+
+
+use crate::curve_abstr::{SolidityConverter, print_curve_params, G1, G2, Curve, curve, ScalarField};
 
 use crate::election::ElectionSpecifiers;
 use crate::prover::generate_proof;
@@ -16,29 +22,60 @@ mod prover;
 mod verifier;
 mod curve_abstr;
 
-
 fn main() {
+    let mut rng = ChaCha8Rng::seed_from_u64(1u64);
+
+    simulate_election(&mut rng);
+}
+
+
+fn simulate_schnorr_signature<T : Rng>(rng: &mut T) {
+    let voter = Voter::new(rng);
+
+    let pub_key = SolidityConverter::convert_g1(&voter.pbk);
+    println!("Public key: {}", pub_key);
+    let priv_key = SolidityConverter::convert_scalar(&voter.prk);
+    println!("Private key: {}", priv_key);
+    let sign = &voter.generate_signature(rng);
+    println!("Signature: {{ s : {}, e : {}}} ", SolidityConverter::convert_scalar(&sign.s), SolidityConverter::convert_scalar(&sign.e));
+}
+
+fn simulate_election<T : Rng>(rng: &mut T) {
     // Print the curve parameters
     print_curve_params();
 
     // Setup parameters
-    let mut rng = thread_rng();
-    let voter_count = 5;
+    let voter_count = 1; // TODO - make this a command line input
+    let election_id = BigInteger256::from(0); // TODO - make this a command line input
+
+
+    // Election parameters
+    let election_specifiers = ElectionSpecifiers::new(election_id);
+    // The order of specifiers is: yesG1, yesG2, noG1, noG2
+    println!("Solidity election specifiers: \n\t{}\n", election_specifiers.to_solidity());
+
+
+    let rand_sc_point = ScalarField::rand(rng);
+    println!("Random scalar field point to verify at: {}", &rand_sc_point);
 
     // Generate voter accounts
     let mut voters = Vec::new();
     for _ in 0..voter_count {
-        let voter = Voter::new(&mut rng);
+        let voter = Voter::new(rng);
         voters.push(voter);
     }
-    println!("Voter public keys: {}", voters.iter().map(|voter| SolidityConverter::convert_g1(&voter.pbk)).collect::<Vec<String>>().join(","));
+    println!("{} Voter public keys with Schnorr Signatures:", voter_count);
+    for (i, voter) in voters.iter().enumerate() {
+        let sign = &voter.generate_signature(rng);
+        print!("\n\t[{}, {}, {}]", SolidityConverter::convert_g1(&voter.pbk), SolidityConverter::convert_scalar(&sign.s), SolidityConverter::convert_scalar(&sign.e));
+        if i + 1 != voter_count {
+            println!(",");
+        } else {
+            println!("\n");
+        }
+    }
 
 
-    // Election parameters
-    let election_id = BigInteger256::from(1); // TODO - change this to a real election ID
-    let election_specifiers = ElectionSpecifiers::new(election_id);
-    // The order of specifiers is: yesG1, yesG2, noG1, noG2
-    println!("Solidity election specifiers: {}", election_specifiers.to_solidity());
 
     let census = voters.iter().map(|voter| voter.pbk.clone()).collect();
 
@@ -48,20 +85,21 @@ fn main() {
     let mut voted_against_ids = Vec::new(); // We need it for solidity
     for (i, voter) in voters.iter().enumerate() {
         // Generate a random vote
-        let vote = match thread_rng().gen::<bool>() { // TODO - change this to a real random vote
+        let vote = match thread_rng().gen::<bool>() {
             true => {voted_for_ids.push(i); Vote::Yes},
             false => {voted_against_ids.push(i); Vote::No},
         };
+
         let ballot = voter.generate_ballot(election_id, vote, &election_specifiers);
         ballots.push(ballot);
     }
-    println!("Voted for ids: {:?}", voted_for_ids);
-    println!("Voted against ids: {:?}", voted_against_ids);
+    println!("Voted for ids: \n\t{:?}", voted_for_ids);
+    println!("Voted against ids: \n\t{:?}", voted_against_ids);
 
 
     // Generate proof
     let proof = generate_proof(&ballots);
-    println!("Proof: {}", SolidityConverter::convert_g1(&proof.proof));
+    println!("Proof: \n\t{}\n", SolidityConverter::convert_g1(&proof.proof));
 
     let vote_count = proof.votes.len();
     let yes_vote_count = proof.votes.iter().filter(|(vote, _)| *vote == Vote::Yes).count();
@@ -76,11 +114,9 @@ fn main() {
         eprintln!("Proof failed!");
     }
 
+    // Run the solidity proof to check the proof correctness
     mimic_solidity(&ballots, &proof.proof, &election_specifiers);
-
-
 }
-
 
 /**
  * This function mimics the verification we do in solidity

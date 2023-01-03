@@ -4,382 +4,524 @@ const {BigNumber} = require("ethers");
 
 
 describe("Testing functionality", function () {
+
+  async function deployElectionContract() {
+    const BatRaVot = await ethers.getContractFactory("BatRaVot");
+    const batravot = await BatRaVot.deploy();
+
+    await batravot.deployed();
+    console.log("Election Handler deployed to:", batravot.address);
+    return batravot;
+  }
+
+  async function startNewElection(batravot, electionId = BigNumber.from(0)) {
+    // Start a new election
+    let specifiers = [
+      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
+    ];
+
+    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
+
+    const createElectionTx = await batravot.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
+    await createElectionTx.wait();
+    console.log("New election created successfully!")
+    
+    let election = await batravot.elections(electionId);
+    console.log("Current election status: ", election.state)
+    return election.state;
+  }
+
+  async function submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof, electionId = BigNumber.from(0)) {
+    const submitVoteWithProofTx = await batravot.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
+    await submitVoteWithProofTx.wait();
+    console.log("Submitted a vote proof for the election.")
+  }
+
+  async function closeElectionAndGetResult(batravot, electionId = BigNumber.from(0)) {
+    const closeElectionTx = await batravot.closeElection(electionId);
+    await closeElectionTx.wait();
+    return (await batravot.elections(electionId));
+  }
+
   it("Dummy test", async function () {
     expect(1).to.equal(1);
   });
 
-  it("One vote voted for verifies.", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
+  it("Can deploy contract", async function () {
+    const batravot = await deployElectionContract();
+    expect(batravot.address).to.not.equal("");
+  });
 
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
+  it("Can start new election", async function () {
+    const batravot = await deployElectionContract();
+    expect(await startNewElection(batravot)).to.equal(1);
+  });
 
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
 
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
 
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+  it("One correct vote `For`", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKey = [BigNumber.from('0x0663C3B47E028293A10E5DFD476C59EFE2431A5104078E5A94EA851039E0DC60'),BigNumber.from('0x146E8A7301ED5F2EEA77831FBE2CD466B4CB1E4775855B0FCB6ED677458086B6')]
-    const registerKeyTx = await elections.registerInCensus(pubKey);
+    let [pubKey, s, e] = [
+      [BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2A5D9B3DE008C78281332B84E424419067BB59825C835BCABF36DC5F667D6175'), BigNumber.from('0x1932814898D51404A2C6B3DE626CA670C4B1602ABD404A24E00A76C3B057854F')
+    ];
+
+    const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
     await registerKeyTx.wait();
-    console.log("Updated census with a new key.");
+    console.log("Registered a key in the census.")
 
     // Submit a proof for the election vote
-    let proof = [BigNumber.from('0x01D7845E6465AB0C8E0A2A3E23755BF24F96AEA9B92AFEB710B10D2115D4B1F2'),BigNumber.from('0x2356E25438D5EE16AEB41FBE8ADB538BD07ACDB5E51A0C72F8E2A74C135B7A38')];
+    let [proof] = [
+      [BigNumber.from('0x0D33F58F7CBF6F726A992B9B8C91D106B5BF645E897C1148FC59EA25DE529154'),BigNumber.from('0x03E0083DA22D66EBEF47316F8951298AB8605985FE39FA2B9C00E9744E311B9D')]
+    ];
+
+    // Who voted for whom
     let yes_vote_ids = [0] // First person in the census voted yes
     let no_vote_ids = [] // No one voted no
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(1);
+    expect(election.result.inFavour).to.equal(1);
   });
 
-  it("10 voters voted for verify", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
-
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+  it("10 correct votes `For`", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKeys = [
-      [BigNumber.from('0x2DAA75366D2F8E17136689D0BC688322CC0CB6EB2FE524FEDC4DA4455683323A'),BigNumber.from('0x18439252B6B5B00B2477D188F283D999C154151DB451EF290F5DAF23721F2B90')],[BigNumber.from('0x1D10E7A8BACBAA63882D0BD6DB53FF98411E13ACC4BD19DC398964CA536B7FE6'),BigNumber.from('0x1C06114B9D74C5EEC1EE36AD687289DE3D75D16346D2D635F7100122809BC346')],[BigNumber.from('0x19ADBDDAF2DE2BA29E5B68589474E8F24B82D2CE05624AB0D4FA02DDA2B5D3D4'),BigNumber.from('0x11686856D92AA64A4B053B172E2CD005C554C41EFF9C52323D610F565B6427AB')],[BigNumber.from('0x1DBEB2CE90DCD43BD3606EAC8BA5D650C57E5BD5D53FE2EF4490B743E9D93202'),BigNumber.from('0x2FBBF9E2DBD1E905E0B8BC88071664FB4F1C3FD41900C3E4BF9116015FCD6578')],[BigNumber.from('0x13BBDBF82E1B34D6365C409FC8E16B9A1AA2EC7345B0263BC800B884AAA2B2E3'),BigNumber.from('0x07915BFDDA9E9043D5AE94106A18F6CA16225F4CEBF38D7F17D58FDFAB935C0D')],[BigNumber.from('0x0E01167D96B742A1D297F171D74C9B6242177881D2591A37E4CE27C033147290'),BigNumber.from('0x26ED6D34D18E91B11AE8C18AC10C6F04E06F1BB673239EFE4B60880642AF3DC4')],[BigNumber.from('0x2DFE05F75BC652DAC2320C539E849BD9A0C4874FEE802BA849B929C60F87B053'),BigNumber.from('0x0E33519ABBF587A6B71FABBC84052B6C9ED5F917A7A6862C52ECA0ED3C1AF345')],[BigNumber.from('0x1A5335FE7994FDA9B63B359B949A9B55C0A1B410051D68389835A746E5176211'),BigNumber.from('0x07C300693A5504EEB1BCCC7A2E2026D7395A8C0914A7A38307A9F53DFD285DA9')],[BigNumber.from('0x210794DF05EFF6119A6EBE3B607115BF29C558F43D21810B44A874A6DE4EA5A5'),BigNumber.from('0x20F5826055F05EDF7EAAA8A8112927B900A25F5B147635C20DA04B17FABCE7E9')],[BigNumber.from('0x2AAA54DCAE0127FC427890696E2601E93076E2271D0155399CEDF7F0F734195D'),BigNumber.from('0x122A8CC2CB0FE15EF5A7F5BFEABAF37F255EDC4FC0392D7044B7EA43DBA0271B')]
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x205F7975726A4E051CCA9D092A956605050DAED3C0D3291A74F39D66B4F09235'), BigNumber.from('0x0B91AF868A03CA199E2BA3C61CEF858C7056758E5885537888408728127975B8')],
+
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x09926DC8052AEAB2DC4A650D7DCBEBD4C50FFFAF7D7C72D0D03BD101F3EFA1AF'), BigNumber.from('0x003FC3D2FD7C66FC20016128CB04C297CD777D096FE2ECA0FD662BB148928A69')],
+
+      [[BigNumber.from('0x049B48A8D23B401718B2EE7BF28C10153BC47910AB97733427A92176B7661A4D'),BigNumber.from('0x23CAAE93E1D243618874BD64727169FED46283A2172292FDD8B0CCD21DF19503')], BigNumber.from('0x2A8F51C7379163677A9EC2557B3A9A943F4D6A52044D5D6529318877EB9AB500'), BigNumber.from('0x22A667C9350C5F80B011AC3D37678FBCDD460D01BCF1B01885C7CD31E7AF42E5')],
+
+      [[BigNumber.from('0x210548074105159AAFA9544A87350B1A0C0A6D74BB90664E9C81F1352B2E0847'),BigNumber.from('0x203AF9E72C53148F55092B84EF22C9557A6E4461ACEC2AE90CB2734643A69BE9')], BigNumber.from('0x2E0127DFABBAD8F7D40969F8498C4836EBC5236643ACEFF7A064D7B2C42C9DE3'), BigNumber.from('0x2D29104FAD165986B8EDAA6C68630A67ABF7CA60B9BAB61B05A9A87A2B82E75E')],
+
+      [[BigNumber.from('0x034CD300A821B24D8F49BA1F888AA9A9D77819567486616979B04C73BE5BE9BD'),BigNumber.from('0x23D592DE5166040F32F8A64315369AFA14DC2D80CA89F573E04DB04F0B53DB1A')], BigNumber.from('0x023EEFA5A824B3753EDB0635B758F1E71365CCF9BFD489EEBF7EBC0DA03F85A0'), BigNumber.from('0x0AFD1CA2996AE39171318523A4F4299872CEB77D2EDA37E4D5587A1382AAFB96')],
+
+      [[BigNumber.from('0x0B0ACA69BD03AF56A0E8F27F28D20A08DF27CA59611230B8AED2C2C2BCEFB18B'),BigNumber.from('0x28747C9F15C746F6268F1885CF6275407782BFEEB71FAD7C4FF8621425A32B6B')], BigNumber.from('0x10D2D946F4E35F13DEB42941E1F1E5875BBD114CA43368C9543D40B837489282'), BigNumber.from('0x2ADD0FF958949A67C70CE5FA15CA6DB12E7E422A2E65E0B961A8C87935E39254')],
+
+      [[BigNumber.from('0x2CBD484F1AC6F253B65E23A682BF38B8CAD452D51BBDC8B39020C2121F415D52'),BigNumber.from('0x1D640DE66B7CAB78FA058161A66F843792076974E09529A02D35405B05B0404D')], BigNumber.from('0x0F96141DA30D93817B646A0D47AFF3FF0452D2A40598483C7C610FCD4C413C7E'), BigNumber.from('0x17CAB924A87410201AC034B8881D954FA4BB49EAEF9687C5D0132402D6CB0D5B')],
+
+      [[BigNumber.from('0x2E89387765381DC852F3D9AE76180BE6F8E75F7A5126CC7D9B66D5D743112CE7'),BigNumber.from('0x1AD284E8F96749EA255DCE50851A5E9EA2DCE6EF89EA65F49A4EF0EAEF28FA36')], BigNumber.from('0x1B1517AD22AE07136BB6088A998332C6DFA547547FD5652E216179159A2C5B56'), BigNumber.from('0x2043681D695892EDD5239A3CF59485434CABEA82C50F8F390D990830346462C2')],
+
+      [[BigNumber.from('0x16D88BBED3D36297B9338A1185E8F5C4574ED9E71F4E268C71E9D8C438A4A17C'),BigNumber.from('0x0B58BE630D62F275F97BFA01F7B7750E09C5DC36E9E5163139FE8D140D5FA977')], BigNumber.from('0x22BAB385CA4EA78232659D149DC58402206B62EC264E46A4CB6B4E661C81DBF1'), BigNumber.from('0x140A9747B3B7D5CA0501733FE98BCC2B841AABC802E736383087EC1F43713F40')],
+
+      [[BigNumber.from('0x27E06B513971CAF0431950D334F79F3B80310FA8BFFA70B4BE7DB86150B8DAA4'),BigNumber.from('0x03E1A2D05561FF064649FCFF4D8CB25720632F427C936A97D6EA52A0D2119154')], BigNumber.from('0x1ECA1A581477E1A6D694A8F79AB01FE9D6260FED2D21B5E91909023CBB703F3A'), BigNumber.from('0x05A0EEA03540F916A5955B86419C862B5C4F5970F79CC34B4E7BC724254F13BD')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
     // Submit a proof for the election vote
-    let yes_vote_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    let no_vote_ids = [] // No one voted no
-    let proof = [BigNumber.from('0x0C36EBDB5B9500A8CFFD0B8A1A1451FFD05433CB258124A32BB2AFEC370BA680'),BigNumber.from('0x2E25B00DE9511B993DD5B530CC0D78B1E765B09A0A12D5F349857862BD1761CE')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
-    console.log("Submitted a vote proof for the election.")
-
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
-  });
-
-  it("One vote voted against verifies.", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
-
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
+    let [proof] = [
+      [BigNumber.from('0x0F23D56A97C13AB428A0ADCF7E529616BCBFCD2C59B54446172D9732FE830B4D'),BigNumber.from('0x2D8A73F590783EBA95C766E81F942ECB98F79B1EA42628476736D69AEFCE79D0')]
     ];
 
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
+    // Who voted for whom
+    let yes_vote_ids =
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    let no_vote_ids =
+        [] // No one voted no
 
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
 
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
+    console.log("Submitted a vote proof for the election.")
+
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(10);
+    expect(election.result.inFavour).to.equal(10);
+
+  });
+
+  it("One correct vote `Against`.", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKey = [BigNumber.from('0x2C0B74AD2D5D4D3432194E012FA2E0FB8A158283B40327F5AA7BE1C7C8697E0A'),BigNumber.from('0x24E3F1118014821522F3FC792828EE605160A7CF1ADB60A36A06321A9D18F8B3')];
-    const registerKeyTx = await elections.registerInCensus(pubKey);
+    let [pubKey, s, e] = [
+      [BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2A5D9B3DE008C78281332B84E424419067BB59825C835BCABF36DC5F667D6175'), BigNumber.from('0x1932814898D51404A2C6B3DE626CA670C4B1602ABD404A24E00A76C3B057854F')
+    ];
+
+    const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
     await registerKeyTx.wait();
-    console.log("Updated census with a new key.");
+    console.log("Registered a key in the census.")
 
     // Submit a proof for the election vote
-    let proof = [BigNumber.from('0x11E7F8665A8F3D9FD7B656263A053BE9EF61315C16C6454FDCD11ED4537373BA'),BigNumber.from('0x02E68F70D473371B3B8ABFAFB196461508D734E6862D1B8FD08CD29A3E7A15AF')];
+    let [proof] = [
+      [BigNumber.from('0x280CCDC11D1CAE0AC40BF01E00B9078184954B4E6BBCFBEB421FF3A7AD33E080'),BigNumber.from('0x08D8117CAF3987B6149EC4267FF9995051465115F68D527F2EAD2D7E10C5FD1E')]
+    ];
+
+    // Who voted for whom
     let yes_vote_ids = [] // First person in the census voted yes
     let no_vote_ids = [0] // No one voted no
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(1);
+    expect(election.result.inFavour).to.equal(0);
   });
 
-  it("10 voters voted against verify", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
+  it("10 correct votes `Against`", async function () {
 
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKeys = [
-      [BigNumber.from('0x056B7E45AE450DE70A0134884B9ACBDB0611BFA4E723CB008E80E2629BD60C3F'),BigNumber.from('0x07CC10493E106DBEC519E4CE093F3412BF2C8B2A8C556C223FCC9AF3890B1429')],[BigNumber.from('0x08A382925D895E90D4028EA68EBDB56A902932FEF8078BF41B7166400569B199'),BigNumber.from('0x288A52F8214A1FAF4591538E818557B3D30D5EB876C8A70521BE872F57379C83')],[BigNumber.from('0x2E862BDD4546D30F40CA0531CA1CA5A235FA597D680ECD4774E3160FF5B42026'),BigNumber.from('0x2596D84091A5AA5AEDCD65F015B182B05A33AA59F2C135B20F511D9C2E916A15')],[BigNumber.from('0x216AE49CB1BFBE666F18D7C08D940B8EB10C9F5445F43863A5FF540C84D129F5'),BigNumber.from('0x2290A429F5D7B5BF6F55A29A1F5CCA36B1D470C615651E5AFC641D1FD0411587')],[BigNumber.from('0x1FC971F6C9EBBBF2A661972D32DDB3007D3975A4F574B8CCB8A1EC9B80FA5AF4'),BigNumber.from('0x14DFF128FB70119FC2CC5B89B528C90668BFD086D1A91FCF515FE0101BA12AE1')],[BigNumber.from('0x1921C89C5E5B19D738D4252414AD78F16D08D517B6B48D27A81A6D0E88991B5A'),BigNumber.from('0x1FB29670526740CE44B6E4D4427D1B4A984B47B71E686E05C2DA65EEB68F23B6')],[BigNumber.from('0x0302BF09AA837D3AEAB05CD79EEEA758C02C505812C9EFF9F36FA8D16A7B2150'),BigNumber.from('0x07599DE8F481697F550254E7674BFE3ED8634398FEC719469B348B988DD61591')],[BigNumber.from('0x287B0D80582B020233662A46D48C448B6822D53F9934C7380E1B2AD02393AC3F'),BigNumber.from('0x1261C71A13AAB702E0C7A2AC48184E79A9A496E9B53895C13C74E57925CD28DF')],[BigNumber.from('0x02E7950F7EBCE979C845EBB539311730A26FBBF4C1C31F0F9F1D61118B73A7DE'),BigNumber.from('0x2DFD8CFF5A7F1B2AF84553056C5402B0DD6B5D92A71CCC551812A9E9ABCC6656')],[BigNumber.from('0x0417ADDC4339E596244650659F3F20CBF700D43D457C2DEF64A61189D2DBFCA7'),BigNumber.from('0x13B8308134CEFC30EB8C5A59FB9DBAD9061508BD27EBBAB550D9939E348440AE')]
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x205F7975726A4E051CCA9D092A956605050DAED3C0D3291A74F39D66B4F09235'), BigNumber.from('0x0B91AF868A03CA199E2BA3C61CEF858C7056758E5885537888408728127975B8')],
+
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x09926DC8052AEAB2DC4A650D7DCBEBD4C50FFFAF7D7C72D0D03BD101F3EFA1AF'), BigNumber.from('0x003FC3D2FD7C66FC20016128CB04C297CD777D096FE2ECA0FD662BB148928A69')],
+
+      [[BigNumber.from('0x049B48A8D23B401718B2EE7BF28C10153BC47910AB97733427A92176B7661A4D'),BigNumber.from('0x23CAAE93E1D243618874BD64727169FED46283A2172292FDD8B0CCD21DF19503')], BigNumber.from('0x2A8F51C7379163677A9EC2557B3A9A943F4D6A52044D5D6529318877EB9AB500'), BigNumber.from('0x22A667C9350C5F80B011AC3D37678FBCDD460D01BCF1B01885C7CD31E7AF42E5')],
+
+      [[BigNumber.from('0x210548074105159AAFA9544A87350B1A0C0A6D74BB90664E9C81F1352B2E0847'),BigNumber.from('0x203AF9E72C53148F55092B84EF22C9557A6E4461ACEC2AE90CB2734643A69BE9')], BigNumber.from('0x2E0127DFABBAD8F7D40969F8498C4836EBC5236643ACEFF7A064D7B2C42C9DE3'), BigNumber.from('0x2D29104FAD165986B8EDAA6C68630A67ABF7CA60B9BAB61B05A9A87A2B82E75E')],
+
+      [[BigNumber.from('0x034CD300A821B24D8F49BA1F888AA9A9D77819567486616979B04C73BE5BE9BD'),BigNumber.from('0x23D592DE5166040F32F8A64315369AFA14DC2D80CA89F573E04DB04F0B53DB1A')], BigNumber.from('0x023EEFA5A824B3753EDB0635B758F1E71365CCF9BFD489EEBF7EBC0DA03F85A0'), BigNumber.from('0x0AFD1CA2996AE39171318523A4F4299872CEB77D2EDA37E4D5587A1382AAFB96')],
+
+      [[BigNumber.from('0x0B0ACA69BD03AF56A0E8F27F28D20A08DF27CA59611230B8AED2C2C2BCEFB18B'),BigNumber.from('0x28747C9F15C746F6268F1885CF6275407782BFEEB71FAD7C4FF8621425A32B6B')], BigNumber.from('0x10D2D946F4E35F13DEB42941E1F1E5875BBD114CA43368C9543D40B837489282'), BigNumber.from('0x2ADD0FF958949A67C70CE5FA15CA6DB12E7E422A2E65E0B961A8C87935E39254')],
+
+      [[BigNumber.from('0x2CBD484F1AC6F253B65E23A682BF38B8CAD452D51BBDC8B39020C2121F415D52'),BigNumber.from('0x1D640DE66B7CAB78FA058161A66F843792076974E09529A02D35405B05B0404D')], BigNumber.from('0x0F96141DA30D93817B646A0D47AFF3FF0452D2A40598483C7C610FCD4C413C7E'), BigNumber.from('0x17CAB924A87410201AC034B8881D954FA4BB49EAEF9687C5D0132402D6CB0D5B')],
+
+      [[BigNumber.from('0x2E89387765381DC852F3D9AE76180BE6F8E75F7A5126CC7D9B66D5D743112CE7'),BigNumber.from('0x1AD284E8F96749EA255DCE50851A5E9EA2DCE6EF89EA65F49A4EF0EAEF28FA36')], BigNumber.from('0x1B1517AD22AE07136BB6088A998332C6DFA547547FD5652E216179159A2C5B56'), BigNumber.from('0x2043681D695892EDD5239A3CF59485434CABEA82C50F8F390D990830346462C2')],
+
+      [[BigNumber.from('0x16D88BBED3D36297B9338A1185E8F5C4574ED9E71F4E268C71E9D8C438A4A17C'),BigNumber.from('0x0B58BE630D62F275F97BFA01F7B7750E09C5DC36E9E5163139FE8D140D5FA977')], BigNumber.from('0x22BAB385CA4EA78232659D149DC58402206B62EC264E46A4CB6B4E661C81DBF1'), BigNumber.from('0x140A9747B3B7D5CA0501733FE98BCC2B841AABC802E736383087EC1F43713F40')],
+
+      [[BigNumber.from('0x27E06B513971CAF0431950D334F79F3B80310FA8BFFA70B4BE7DB86150B8DAA4'),BigNumber.from('0x03E1A2D05561FF064649FCFF4D8CB25720632F427C936A97D6EA52A0D2119154')], BigNumber.from('0x1ECA1A581477E1A6D694A8F79AB01FE9D6260FED2D21B5E91909023CBB703F3A'), BigNumber.from('0x05A0EEA03540F916A5955B86419C862B5C4F5970F79CC34B4E7BC724254F13BD')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
     // Submit a proof for the election vote
-    let yes_vote_ids = []
-    let no_vote_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    let proof = [BigNumber.from('0x12B3ABB25077062DE6C2AD711A2F704577823A15EF1BB1D7C7FFB83E5265314C'),BigNumber.from('0x1A43C2E25C68CD544A6FEA1D9E9D808B7789FE41C786028EA28BB2818DCFA943')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+    let [proof] = [
+      [BigNumber.from('0x2FA96DBCC8B40FC229E61F511AFF9AFB76E49D7EBE5A9939EF3E7DF09BC64031'),BigNumber.from('0x03AAC922DCCA6DFCCAF0F0A4193C4B33CEBD04AD5E7779E7C407150A71543F57')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids =
+        [] // No one voted yes
+    let no_vote_ids =
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(10);
+    expect(election.result.inFavour).to.equal(0);
+
   });
 
-  it("1 vote for 1 vote against verify", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
+  it("1 correct vote `For` and 1 correct vote `Against`", async function () {
 
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKeys = [
-      [BigNumber.from('0x2523F1C4764F6DB67A7A889F50D8C813239011BBEF137E8CE401391B0768CABE'),BigNumber.from('0x2D0DE57B0A3CD3EF0800AAAE69BE4F4FD3431772250A0FB456FFB1FDA49BCD1F')],[BigNumber.from('0x0D632263F6C0D5C86665E6A3FFEEA396C303FCEC25888AB9138B657431728DC8'),BigNumber.from('0x2FA5B8E71B7A5148B7C7E170BEE238F563FD5DA80CC45809D728AC2AFBC01AEF')]
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2D8D3302434A0EC5009C5AF1FB384FC4B8036DD9119807F8FEB05BBC6330CA7B'), BigNumber.from('0x294E7E556E063E762F4D3A6365A084AE08AE4D4001FA4B1E14FF7E64CCB5BCE2')],
+
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x26EB65497FD690DABC4498A99AE4A6DD28CE0D3F877B59D62BBFC1954AFBE22F'), BigNumber.from('0x2A4A7D79DF231AEA58DF307DD5FB5AB68F0CF17107A881739E9705EC02097554')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
     // Submit a proof for the election vote
-    let yes_vote_ids = [0]
-    let no_vote_ids = [1]
-    let proof = [BigNumber.from('0x2ACFB8723C69581457CBA0255C2CF75E3011D6A2FDCECF3F795BBA3AC1554B89'),BigNumber.from('0x161C223D096261F444AA55B33B44096E450670E4FE47EAB0C6EDA3E9D1CDF4A9')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+    let [proof] = [
+      [BigNumber.from('0x0EFB960892F762E143C9F6665ED6210629C23BCBD4A4E993E9B759440AFB885E'),BigNumber.from('0x19795FB7DB6430915D985A580C383A0214F112B3BC2ADD6FA1B79E40F509CE77')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids =
+        [0]
+    let no_vote_ids =
+        [1]
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(2);
+    expect(election.result.inFavour).to.equal(1);
   });
 
-  it("1 for 2 against votes verify", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
-
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+  it("2 correct vote `For` and 1 correct vote `Against", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKeys = [
-      [BigNumber.from('0x0CAB8D9866BB765BD3DFBDFC69A13904FC8E209355696AA18D4574B4C4A7533A'),BigNumber.from('0x2505D95498F7883185C7EBE7849B2BE5AB47FAD50285E1C6E8C63CF1483DC0E1')],[BigNumber.from('0x2C3E4FF9756B22017AFBB92A19108B30BC64345C45AB2DD8A79BDAD63ADCC962'),BigNumber.from('0x16B4E2CC395C0E850A9D9574B5C4B5AC623D40442D6E95BF2CBB4BFC24963016')],[BigNumber.from('0x0028A2D9A7EEC7354F601B2C5799BC6E209FB6C8F7D58CE5EF8CA41BEAB95900'),BigNumber.from('0x2D6C9D2DBEAD4A0BC72AA8AB5461C66CD0E81CF8CB2A08B1F0351AEAFB1DC5C6')]
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2FFEB08D075E14CC0BEB2C27824CD31B7CA720A3EB925B816CAFEB902C61F7AC'), BigNumber.from('0x2A4A7D79DF231AEA58DF307DD5FB5AB68F0CF17107A881739E9705EC02097554')],
+
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x2EE1CA127C1646CD497DA73DE3F0FD5AB042BEFCABF5EA809449473C4629E01B'), BigNumber.from('0x2AA159161C518670E7BCA3EFADBC6B241304B504064A03C1EFF32C87FBCFFCB9')],
+
+      [[BigNumber.from('0x049B48A8D23B401718B2EE7BF28C10153BC47910AB97733427A92176B7661A4D'),BigNumber.from('0x23CAAE93E1D243618874BD64727169FED46283A2172292FDD8B0CCD21DF19503')], BigNumber.from('0x1DCF3A78D3BEC37F280FB10772B51881808BA33ACE9C66704D29702CC1E34C83'), BigNumber.from('0x0EF2E7E14F1908D62652C7D29B8C935F30683E7F494C54093D1EFAD15C30D4E7')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
     // Submit a proof for the election vote
-    let yes_vote_ids = [1]
-    let no_vote_ids = [0, 2]
-    let proof = [BigNumber.from('0x276B60374EF78966057E91A4059272EB16AC8C8F61A5A99EE5A509AEC059A990'),BigNumber.from('0x027F2352750D079A595C99A735508CB3800576D659D5F1564465C4EAE003A737')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+    let [proof] = [
+      [BigNumber.from('0x181153DA1A2538A74E53D83400E018DBEFA330159E44CF4FB6F0E513A2BC5059'),BigNumber.from('0x22101D45CF04E3EA854D87FE3CABF9A5A36261B00A077E62D6494D00D0278CA8')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids =
+        [0, 2]
+    let no_vote_ids =
+        [1]
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(3);
+    expect(election.result.inFavour).to.equal(2);
   });
 
-  it("20 random votes verify", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
-
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+  it("30 correct votes, 19 `For`, 11 `Against`", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
-    let pubKeys = [
-      [BigNumber.from('0x2B2DC3BDBCA76AB100360BDF22B94A4B4D63A2B6452C68FBD1125F73175DDA0A'),BigNumber.from('0x11ABA931910FF7A5D4F6099FDF2BD344818175D90A1DFDD6B19051562D53C3C5')],[BigNumber.from('0x0CB6717427B12F21F485A48C1A6D58195245F4E222CD4142E9DEEBC57EAEA0C5'),BigNumber.from('0x2A3B8392C2FDF28FBA563D774B809CF1995B31901FB4C66003B3F32FBE82BD3D')],[BigNumber.from('0x01C827336AD2DE8EF61D4E6A97E66553E7739B42692CB7DBC4FF2AD24DBB658E'),BigNumber.from('0x24A74801CA89F887F92F8F51E35CFC8BD6D318EAB9AA142021052DBFAE3D1E37')],[BigNumber.from('0x258065723B7164FE7652695E284B51592FEF65FA3DDADB43CD8B84D5D892ADEC'),BigNumber.from('0x2201CD0EE0CEB693B5C7E524E53412375A888A1F6EE2A0A0E238E782B790B7B4')],[BigNumber.from('0x15C5C37633057B57749E8A95AC0A82C0BF672632422E81F2B8B106F6AB771335'),BigNumber.from('0x1371BE5FFD1553085374AF369C05D3AEAC7E5AFE199957EE2F9D7FDE51680602')],[BigNumber.from('0x0E2043DB9EA36359DF06AF525D55A90150ED98FB96731FB7A20F2CF84DC01487'),BigNumber.from('0x2248EB5F0C0F4C81FF391DC24E4B0E0C35A3B2D3D6D0C8C024CF7B6A0F4ED750')],[BigNumber.from('0x1E6B5D622AFBAE43E3600F450D7FA951A073EFE4CA10D19BA12263443088CAE5'),BigNumber.from('0x1A9DB747926135337B7341C2FD057DADDA153B4E352833176876FD792FCF2A78')],[BigNumber.from('0x28108D6D724CECC4E86745828177FB2156BC19F97F8F10A4287D0BD6CC1B0FB6'),BigNumber.from('0x178743D982473AF4D8BEC1EF3DF163633628B8138FCDB87F1DFD6CFE281DA5C8')],[BigNumber.from('0x2A810F075B0316514A98331EF9A5B3DC9CC674AC6A7FDCA935D13826C3CA4412'),BigNumber.from('0x2FB2D4B779B5BFD46223ECCBFD8EFC53F2ACF0E92362D657101B46EFD2A750EC')],[BigNumber.from('0x03B31035C4FCAC3B7E5F0FB9802A34BC97AD7D569D1F82DA30BEABDA5B680819'),BigNumber.from('0x12155456AE9CED24A2310FB77883F4FFF5B60B950345937C1B584BD6547CA81A')],[BigNumber.from('0x07694FAD1EDDBD4C50B0B1D7DCD0DFBF259884329A34E35EC318463D1749447C'),BigNumber.from('0x046872D29CFD73C114BC974528E3578ED566926A1513C553BBEDEC6AC95A1673')],[BigNumber.from('0x004995D5069939B431BB8EC6C9A90552AF507E0C2AFCE36BAE213A304D1928BB'),BigNumber.from('0x0F05946F8C78A6DFA7CA33E2BD8E2610C40B89EA2EDB2CD902773383CF9EAFD3')],[BigNumber.from('0x069CA2EF2C5BEEC1C7B1EE52F2542E93991C3EB45490108E5DE89440047096A1'),BigNumber.from('0x2DC0620E953903DDD05C57A9BE2AACBF779733B1FC2C33D322AFB6A0CC5CA0A3')],[BigNumber.from('0x2CF0D5B909E8BAA7579148B20B5FC478E119528C381FCD57D0B66D5ADC0BC491'),BigNumber.from('0x22C2595C49736D87E0ADAC7788EA0313CE696A16B2C5D2546428F8354E975B41')],[BigNumber.from('0x284BDB40AA952023C4812BCFD22F194A045C2D72C390AE7EB5943BF009A62847'),BigNumber.from('0x0BD1C9DA4E5A54DAE6383FFEE38D292C0E6421CFAB0D810C4400010D71FDB3D1')],[BigNumber.from('0x2A0A2A6EE0A88798D6597847BB7B7A2DA4FACA53D6B3A2ECD77954F3DC5568E6'),BigNumber.from('0x2E9FBBCE00B95A3BE3E0FC25C326626ADA9145F0FDC0C3B986C9189C1A60E4C0')],[BigNumber.from('0x13B84AE0B67F9EA42495D0435D6718D36281B1C1347264210E44C606E5994708'),BigNumber.from('0x22905353E4E44845873618A3B216E641F252DF19A4ADE805038B4228E2202929')],[BigNumber.from('0x26DD905D3670A266D0C20914CF385D4F0D195E935C5FE6B3A0F6490991BB6481'),BigNumber.from('0x11512266E48550B61B989926AFB99FEA3164EA443E9B42DF6ED4FC7EA9C42D86')],[BigNumber.from('0x223F2C2CFBCA6564EEB98D39CBD53C7FB9FA80AC910072AE469695F7BEF544D0'),BigNumber.from('0x05D926CD3FFF4255FA4572109D994A4D5EE189EF3EB701D930C5B806335381CA')],[BigNumber.from('0x07999EBE5BE0E7735D7F539AB8F7F3DE5CA0792F943447B8FAE856726A99B3CE'),BigNumber.from('0x290A6F13679D9335F54688CB45ED83C45E81C5D7E16295D4537F98189DB64EB4')]
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x17ED99B1295D05477F3C012A3CB96C7E26DF76417F5A87DA3F19E92514A7E676'), BigNumber.from('0x26D680660D7CAF4358B6A5020BDA1E827B20D68FC7A0D3FFCFF811F5F9E49CAE')],
+
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x184CA64F1FD6D38F4DB78B8B40B0B2B34A348EF12D711FC498FFB23BC69EF26C'), BigNumber.from('0x1E5D0649FF0EC0471A01B636375E761096FA7A5AFA2E54DB7A79F0D40DF1C5F1')],
+
+      [[BigNumber.from('0x049B48A8D23B401718B2EE7BF28C10153BC47910AB97733427A92176B7661A4D'),BigNumber.from('0x23CAAE93E1D243618874BD64727169FED46283A2172292FDD8B0CCD21DF19503')], BigNumber.from('0x19DC7EE63668860961D9C3348899B70D3FC048D223B4F56CF0080F9B306B1695'), BigNumber.from('0x02C55D01855ABDFFB382C833929CD3A2E9F79DF300BF724E476A3B5CE6D30611')],
+
+      [[BigNumber.from('0x210548074105159AAFA9544A87350B1A0C0A6D74BB90664E9C81F1352B2E0847'),BigNumber.from('0x203AF9E72C53148F55092B84EF22C9557A6E4461ACEC2AE90CB2734643A69BE9')], BigNumber.from('0x2771ED216F26266B3DB713EB64CC18E9D6B32DC9D4940708EA9ECF5FFA1E400D'), BigNumber.from('0x048B1D42554DB6E1F4C2443C50D3F58BEEFB4692F19E6CA26055B022B83AEA27')],
+
+      [[BigNumber.from('0x034CD300A821B24D8F49BA1F888AA9A9D77819567486616979B04C73BE5BE9BD'),BigNumber.from('0x23D592DE5166040F32F8A64315369AFA14DC2D80CA89F573E04DB04F0B53DB1A')], BigNumber.from('0x2FBB6D21F6CE7D878C38BBCAC2E8C1DCC2EDFDEA2AFF51F39A5445FA6A9FC83E'), BigNumber.from('0x281C8D36A797DB021DAC956D69E3EC0D69F07C60455655CC4F1C963174EC230A')],
+
+      [[BigNumber.from('0x0B0ACA69BD03AF56A0E8F27F28D20A08DF27CA59611230B8AED2C2C2BCEFB18B'),BigNumber.from('0x28747C9F15C746F6268F1885CF6275407782BFEEB71FAD7C4FF8621425A32B6B')], BigNumber.from('0x00CCDB1FBE93D79F11CDAE6F64E6B501FD5200E864130ACDC84ADE02F0441975'), BigNumber.from('0x15F0767070B7FE30E8A1EF37DC1B70FFD62773CA801DF88B45C842E2621A6953')],
+
+      [[BigNumber.from('0x2CBD484F1AC6F253B65E23A682BF38B8CAD452D51BBDC8B39020C2121F415D52'),BigNumber.from('0x1D640DE66B7CAB78FA058161A66F843792076974E09529A02D35405B05B0404D')], BigNumber.from('0x00EB3DD9201EC3943932CEA1C0FC3BA16981FF0A6321E0F02438E341DF6CF4FA'), BigNumber.from('0x1B3A0A5C473E67F61AC583B6F8D7F74B518289DACDB561F597E44A74C3888683')],
+
+      [[BigNumber.from('0x2E89387765381DC852F3D9AE76180BE6F8E75F7A5126CC7D9B66D5D743112CE7'),BigNumber.from('0x1AD284E8F96749EA255DCE50851A5E9EA2DCE6EF89EA65F49A4EF0EAEF28FA36')], BigNumber.from('0x0EFD31569DAD01B0CD1C0D1D9EA3AA390E5DB4CEA854C2519C96EE3F7FE41225'), BigNumber.from('0x08B3215A64E0F45FB46A7D415E99D2967EDCDE5DA38F378EC9FC7AF8FF649A7E')],
+
+      [[BigNumber.from('0x16D88BBED3D36297B9338A1185E8F5C4574ED9E71F4E268C71E9D8C438A4A17C'),BigNumber.from('0x0B58BE630D62F275F97BFA01F7B7750E09C5DC36E9E5163139FE8D140D5FA977')], BigNumber.from('0x0305FD8124F50233900EFCF6D87C19F43515089C2D2278EC4C05EF88ED9046EA'), BigNumber.from('0x0260DE4F867B41C765C8ACE673BB7F439D4675AE3A27596DFB40457FD2ED91E2')],
+
+      [[BigNumber.from('0x27E06B513971CAF0431950D334F79F3B80310FA8BFFA70B4BE7DB86150B8DAA4'),BigNumber.from('0x03E1A2D05561FF064649FCFF4D8CB25720632F427C936A97D6EA52A0D2119154')], BigNumber.from('0x2A1739408AE9252C7D4999AA46F2A9EC161A7B4F79B10AD0EC94EB45FAC1A6E8'), BigNumber.from('0x2393DF5C444EC42EB18527E834A3EE85A35090E5F60A05019EEC1BAD8A646008')],
+
+      [[BigNumber.from('0x2D123E21E60C3D72EF7D0241F4E204C1AC3A757F010A30C141073F8CDCF35BF5'),BigNumber.from('0x06AFC1AFAD887E9BA7C7C986F4B99E8C4E180B899D03CA755B4F410FFA308368')], BigNumber.from('0x300FC4EB290DB953D964B3580CFEB44FB7AACBD000BEF09B9B794B761EE7E15E'), BigNumber.from('0x0CD160C237C6B4F4F0B6DECAEE35401D6CE4BF6B93FCCAB6779FF656E7A9C7BD')],
+
+      [[BigNumber.from('0x1E955D79BC27D6BA4958477C46E3B1E202F74010EDA6B09741C10EE1C0046085'),BigNumber.from('0x24C0A2395CBCD0E6369A8A80E21D0DA96A7E7C526B26A14F3B8E803A5205754E')], BigNumber.from('0x1CEF954628A8EAAB4E052A3C25FFF7F901000587D743AEEE7A0A94D74332A261'), BigNumber.from('0x079C416FA9CF991218A8D7FED32A2815D456F3590273FDD3E41C8D249893FD79')],
+
+      [[BigNumber.from('0x2964FDD7EC069C336A0810CB8F01581002D5DD2AD942C2657CCB6EDB0D0561F1'),BigNumber.from('0x0C93204F9FB479543EAFE30F1BDF076F4183AC1BEB2E78C746ABF48ED7309B01')], BigNumber.from('0x0026B6F7DF0D2E39D489FFA2A025873D969517980EBCB25980FB4380D461728C'), BigNumber.from('0x02420941E8FDC43FF5F04EDDE171EC155E4CEBC190191FB5BB2EE4E833E7BDD6')],
+
+      [[BigNumber.from('0x0B53092F2C2517788C6C6F1568B7019440DE281B68507E91FE3DBC43A467112A'),BigNumber.from('0x16F049A64594020F05EFD81ADFEEBD9AF2E07A5EF019417086F50AC21BC12782')], BigNumber.from('0x27B6C3C318C6B98D9E494246C524AE406D1AD66AB91AAB3F16ECDD24A1F5932C'), BigNumber.from('0x2A3AA624B1BCA332755B0EE7EB7075E33FD157176E0F1BD680AA7AA3BF53B5A5')],
+
+      [[BigNumber.from('0x16F8DB936CB9121C49F5A98DD24D689B078C1E1E12B1A25BFCC544D05D9799DB'),BigNumber.from('0x277AF1CD5C6F5872F7B81351F6856C5C1790E783B97A2CC97D7CC707C03567C4')], BigNumber.from('0x150E9FB70F4A5472DAEDACB70A966DF37A2CD06EB679726001E77D5814C5E322'), BigNumber.from('0x1F39D13681643B3DE3952C1CD314B17D1A23F64FFE70AB07B466B12ABD243ECB')],
+
+      [[BigNumber.from('0x09129399909D9E8A6526B62C4B3C18AE6E1C7832BD4CEA4C84A2BCAC0C354735'),BigNumber.from('0x1B489DF6588745E429E71A5382D7787604750D1D592EBACDBD166A77A9961E48')], BigNumber.from('0x027C1BF6B5C288C4B63664CEE12B98F48465DF3FF4F0489A259E11ED564E8C2C'), BigNumber.from('0x15E59C35E19801AC7FB9C16A41F17A9D00E6A39BB71412EFBEFC47B3AF0ABB1B')],
+
+      [[BigNumber.from('0x22CEC6C1FD240CC98B0C1558462F58C1C6462605838B150E49B2CFCDF921E72E'),BigNumber.from('0x200440AED11592ED0D76F262D1F472540664B88475C399429850804B3D482E48')], BigNumber.from('0x0E6FFED4AB80C27C3E013825A50E6C51831FD2E14F2E2A40692790549F4B32D5'), BigNumber.from('0x1F3BBDF73E7E7DC2631BCC780720AB81DA62954FDD042AFDA78B8F6C3A2E5FF6')],
+
+      [[BigNumber.from('0x00D78D86F30535EF092B90E04C1538535A414CCD881FE2DE424207342FD21B9A'),BigNumber.from('0x18A4F1031685B6AB927E67E3D0D71BCB9FC930BD8A3D014816ED72ED5A98377B')], BigNumber.from('0x23B394BAE6E54A00FA0E99E905CE845FFDD8063DA5B4E57A844C79016538B618'), BigNumber.from('0x1876FBE45576259968EB5CD8C60041311710E71575F46C097D1B66E9CCDE4C5A')],
+
+      [[BigNumber.from('0x192FB53A56E8A78AF27E8DC61F89DB22C89AEE2B1B2D05AF3E424228224324C6'),BigNumber.from('0x14817A025FB3DB1F193A98D33A46C28529DFA0987D410B87F50563063637516A')], BigNumber.from('0x2B21DDEA62865503059D0B3CD6076DCDF4CFC370E6548990AF29125D937C5F9D'), BigNumber.from('0x10772D2BCDB991BCCBF7B7A03D4B8BF6AA67C04879B20FCD69F268077E0E4124')],
+
+      [[BigNumber.from('0x0635149E7B25829A6242E9521DB78689F098144C6BBE9DA20E6A608E87F13733'),BigNumber.from('0x120E78D4F6997AB34F3C8327B7DA881A3B6EE20487B7A47A57852D82B3083527')], BigNumber.from('0x2474A797AEB2C9D9F50EE2E47335F8312D2394DC48FAF0EF8B1AB916A4AF2817'), BigNumber.from('0x14DB73C3C81A3A0E682227C644BC1CC5418B0502A22B686868EA2C27933B476F')],
+
+      [[BigNumber.from('0x1B523B3F2A2EDDEE8E348EEE7E26F5D782D0FDD932D331FFC82198AFBDBD920C'),BigNumber.from('0x01D9020000C5302DB805E868D47CF1714CEB0DA3F39CC98BF271722F445E5866')], BigNumber.from('0x10ADF865991B7B9F9CD81F452612819C04CB6D2DA44FCBA3A6A11D218C596328'), BigNumber.from('0x284C505E492BE56E96F117AB2E436AD986794168A03ADADA7A89504D590B80E8')],
+
+      [[BigNumber.from('0x197FF10C471861D1D430EABD4D85EEB9A55E7754AC60C694573A879566A38193'),BigNumber.from('0x09B2E06591A203B911AE89EB29883883F7C560EFAB2DBE26E9A7ED14BBC2F745')], BigNumber.from('0x16518D4D5221D384C5A2917B8EE4D08F4CA696202F46E54D725A2ACD43138779'), BigNumber.from('0x0690363B98E4A00A7A42969097AC555836B30DB5327A4588AC48006DE0E7F139')],
+
+      [[BigNumber.from('0x0034986DC706239F58C26E5A433B4DB1D8ACF6E170BEA825D86FEECE2221A730'),BigNumber.from('0x225513BEC7546979D347FE95AA7B55A850C2A5F6DFBBA5ECF4E101A6C1BB00B7')], BigNumber.from('0x2FE3D38C177281E0444BF8188DD4D2A1AFE2B279B7F667D5ACF8AC5D0BBFA362'), BigNumber.from('0x0FB23D15073D208200F80C2F0E4C9695BAE376D6F7E5925ED681F7BAD25D7F39')],
+
+      [[BigNumber.from('0x2DDD8F36EFB17C7E4E915DD62D3E246EF7E273BBA0B7662879E8B5FE0FA167AD'),BigNumber.from('0x2EC9C9290735461446EC6C6C8BA0AC5FDD0BEEA95E6F98997610DF2FFE0265A6')], BigNumber.from('0x02E7E6FD2E8B168942B9C7B6B38BFFD831E1B1956453F5901C7049C94C3F664B'), BigNumber.from('0x2BD888934F9814A1D938AB5A4F5589472B22D5BF31B927C5D3D93E56C6017454')],
+
+      [[BigNumber.from('0x050A38DB8AF610009519D9941E63FC2871B5282C6E009A4DB97DEE06C8AC0E0B'),BigNumber.from('0x14166488F26D52342C66A31AD4D22D50628ECE4C746A33C93F3B0407400CD8BA')], BigNumber.from('0x0E94AADAAF9014905681123C61343DBFA80A8D03389BD96A250FA1218414809F'), BigNumber.from('0x08F25B984BC7733F013D91502386D67BEA75E05366C3D222DC518BA2DE81D4D8')],
+
+      [[BigNumber.from('0x1181DBCC837C47F27E5E140641EDE064075AC80E5EA245B0AFD54215F82E7C05'),BigNumber.from('0x120504F2B67DE88C3F2A50ACAB07A0FE0B28FB2C3447374523117F7AAC9A3490')], BigNumber.from('0x2EE0B98BB81C9E9F0A917A57A62DA18ABE67B82988D2569B4C594997A7C3C70B'), BigNumber.from('0x19E498DD96AC4FE931E90D2D2ADACA3E2F7BA334F31645B137D49BB6193230BD')],
+
+      [[BigNumber.from('0x0462D76265D340094A362DC677B573747F1BDFC81C60765C666B46F33C3E313A'),BigNumber.from('0x1CBF7C78E886DB159711EDD9E32455F3777090C49163A4ECA4C4F378A7029FCB')], BigNumber.from('0x0F63BF4A77CFE9391B3CC65862A89D86C8FA75A32D18F8072C2EAE15BF6D683D'), BigNumber.from('0x0D67F671411FF0C3E21E049694D742B11B6DAEF96052A94627DC32D756CB6C87')],
+
+      [[BigNumber.from('0x1F3C73547E1A8C4C13FAFCAA9F9EE367D8AD1418CC7DD7194131F94D8FD17CCE'),BigNumber.from('0x15C02655AE6376920BF176651A35C4496362D36A0D58584D30040F5D2EF28EFB')], BigNumber.from('0x26479E158526DF7C0EBE1F9FBDD360CE7CD3C2BB7ABA121571DBE60C470F88F7'), BigNumber.from('0x0B18ACE1664E3AD092DE4A6B2B336E43680F1832FE70B529807D62C54B425D08')],
+
+      [[BigNumber.from('0x23DB01EF10A87EC2D1E78841F8D94A4C8A17F86749493FE17F80C9E2100DE2E4'),BigNumber.from('0x0075D1D492BC749FB1C00B3DA9097F84E01FEFDCE4F445C96EFEDEAC72988B4F')], BigNumber.from('0x130CE1A3070D2609495DD74C89770D7A852AD586B805E2A238E0620E3774B727'), BigNumber.from('0x0AFC68B7293ABDF746A89756004C33768370DBB2A854920FEDEF742852AE641F')],
+
+      [[BigNumber.from('0x1990C6E130A827588B85962DEDF15117884D489E1B12C933B6BD7D8C24D8FD34'),BigNumber.from('0x2617CCADFD8EB223B8B7B39103101732AB4068111C2D1DFD58FF4138FBBA048B')], BigNumber.from('0x1E06192DB603396778BAD7E0A021DD4D04AA6FA69BEBA1525BEA31BF142DCAE0'), BigNumber.from('0x27F3396AB5C6CEF5C96EA2F4DD0A9927625B7B977908EFF6E0A30125D7048203')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
     // Submit a proof for the election vote
-    let yes_vote_ids = [1, 2, 3, 9, 10, 16, 19]
-    let no_vote_ids = [0, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 17, 18]
-    let proof = [BigNumber.from('0x2EB8F2FD2DCBEDF018155ECA7EFBF485402DD6941073C60496C77892FAD504B8'),BigNumber.from('0x2D3AF89E62C6CC5BEA0E35CAC1A334D35DC736B38E9AB2D9086568648C25A26F')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
+    let [proof] = [
+      [BigNumber.from('0x0AE1A91BDB33EA55FFEF75DA792BE5911869E6AEEAE10856BC0C1CCB3DA321BE'),BigNumber.from('0x13270D81ECA5B4849952139D435113C41204FED0775511C88CDEDDC5CA4C2A3B')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids =
+        [0, 2, 3, 4, 5, 6, 8, 9, 10, 12, 14, 15, 17, 19, 21, 22, 25, 27, 29]
+    let no_vote_ids =
+        [1, 7, 11, 13, 16, 18, 20, 23, 24, 26, 28]
+
+
+    await submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof);
     console.log("Submitted a vote proof for the election.")
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(30);
+    expect(election.result.inFavour).to.equal(19);
   });
 
-  it.only("Correct results with absent voters", async function () {
-    const BatRaVot = await ethers.getContractFactory("BatRaVot");
-    const elections = await BatRaVot.deploy();
 
-    await elections.deployed();
-    console.log("Election Handler deployed to:", elections.address);
-
-    // Start a new election
-    let specifiers = [
-      [BigNumber.from('0x0741D5A16A49B7F00F0A82DBABC91D89332D8FED0BA1CE33FF40B363224005EA'),BigNumber.from('0x1FC70911C14D984447BC905FE5712ECA1E16D7498C2334A451CD06FAE6BBFD6D')],[[BigNumber.from('0x24A0CD744DA37D3E6FC2472C00E4D0D3EB89F60A622CCC15E7F1D94693574196'),BigNumber.from('0x30400CDC6644DEA03B1135F3059EACD40287549F29426AFA75D6A1666AC1270C')],[BigNumber.from('0x00EF16853D17C2A273A4145BC3B4900101F5EE6A3209C5293C00A91D17CABD52'),BigNumber.from('0x086E34452857BD3C1B9F6CD350E5C4BE64FCC81500F85471811811A468ADC2FD')]],[BigNumber.from('0x27E040376BCFC428695CB121DBC1E0235C2ED4861410F8A1F1936EFC63098835'),BigNumber.from('0x0C6C2104AC3A92E182DAB6D0310525F5211183D9675C5F9D90DB8D274B9D1493')],[[BigNumber.from('0x1B9475177F7F499AE18F442CF8947F04FB8A85EAF16D02E6B03DF857EF05CAD5'),BigNumber.from('0x22DD32B43B417E038BBDA36E35BA29A3B6D4E1E65E47C7A2EB9339D9307E5380')],[BigNumber.from('0x1D4BEE088DADE6BC2BBAEEDFA03137D28BD0C3E4E205BE1D9445E679216F5826'),BigNumber.from('0x11AC5E97E0AC2368243D6D4C4A910880244E9EE6489C024C4E1D44661552C81A')]]
-    ];
-
-    let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
-
-    const createElectionTx = await elections.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
-    await createElectionTx.wait();
-    console.log("New election created successfully!")
-
-    let electionId = 0;
-    let election = await elections.elections(electionId);
-    console.log("Current election status: ", election.state)
+  it("No one Voted", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
     // Add key to the election census
+    // These keys do not matter, as no one voted
+    let voters = [
+      [[BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2FFEB08D075E14CC0BEB2C27824CD31B7CA720A3EB925B816CAFEB902C61F7AC'), BigNumber.from('0x2A4A7D79DF231AEA58DF307DD5FB5AB68F0CF17107A881739E9705EC02097554')],
 
-    let pubKeys = [
-      [BigNumber.from('0x2822578AE1615CE8247965AA02F6C2FAE36513EA29698EA0C9469B64A954E4A1'),BigNumber.from('0x25ED314653FA56203584D26E43D0029CAA4B72F49DE5B9FB30991509A08D4A12')],[BigNumber.from('0x16CD6D8C76AE70F08F4AD126CD2B111C6FFF82559D86427FF3169CB0C9A1DDBD'),BigNumber.from('0x2E4F43B816C3DDE0F4AD9E36F80CE7007BF5D8479D663BD53967393CC01359DE')],[BigNumber.from('0x0822F1A3ED8C6D6617FC33B6BBC919C55EA7C953C7D5AC6924EA999EFCCC8E21'),BigNumber.from('0x2D9987D0BF4FB2E3C333419FACF006F419DE4E00D30FF44DA9D5D83CE24527C4')],[BigNumber.from('0x26651274336B4B73D012895C94C34649A0FD235FD230C0950FF179F44C5B5100'),BigNumber.from('0x276E6FC6553929E99F3C5C1861C39BFD3E4ABFC20C2CF6BAD7320AD4860739BB')],[BigNumber.from('0x19380FBBD4272C6FED699C96A01CD7EF1E0DCB792245EC7F64E354CFBF027EC3'),BigNumber.from('0x0871EDF1D8C4ED07F96C4D06986AAA02C96C314E8F92F66799083A6D927E78C4')],[BigNumber.from('0x0171C7D41BD6B84C42FA8D1888E5FCB6CCD3AAF8A68CB6AC3AECEE12C0E6FFF5'),BigNumber.from('0x0C315578EBCB922E6B47DEE5369DD08A7A41397FB9483838FF2708376AA2AB24')],[BigNumber.from('0x0A817A87854EBEDF8E606FABDF07722A1556153AE8FCF2FED15F4D2D0EA20FC9'),BigNumber.from('0x144EE63E3BCF90631A059B214093BC5E826556C0B276CE715640BBA7A667BF83')],[BigNumber.from('0x2742D364CC40422EBC0F399AFAFC9B2CE6EB60BFE975029669BFE3524A55A434'),BigNumber.from('0x2BC21601011FC6EA0678C89F1D2B15C04B29127745D86D23E8E18B4C28A63952')]
+      [[BigNumber.from('0x21E71F2727A6277CE12457973997A101FC0D483FFCFDD0D6C7B57BC98A34E9D0'),BigNumber.from('0x0BD701B9C3B3FF922D8DCBB2A755640AF6F88D4429DE1914EC1A850287C34C46')], BigNumber.from('0x2EE1CA127C1646CD497DA73DE3F0FD5AB042BEFCABF5EA809449473C4629E01B'), BigNumber.from('0x2AA159161C518670E7BCA3EFADBC6B241304B504064A03C1EFF32C87FBCFFCB9')],
+
+      [[BigNumber.from('0x049B48A8D23B401718B2EE7BF28C10153BC47910AB97733427A92176B7661A4D'),BigNumber.from('0x23CAAE93E1D243618874BD64727169FED46283A2172292FDD8B0CCD21DF19503')], BigNumber.from('0x1DCF3A78D3BEC37F280FB10772B51881808BA33ACE9C66704D29702CC1E34C83'), BigNumber.from('0x0EF2E7E14F1908D62652C7D29B8C935F30683E7F494C54093D1EFAD15C30D4E7')]
     ];
 
-    for (const pubKey of pubKeys) {
-      console.log("Registering key: ", pubKey);
-      const registerKeyTx = await elections.registerInCensus(pubKey);
+    for (const voter of voters) {
+      // Add key to the election census
+      let [pubKey, s, e] = voter;
+
+      const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
       await registerKeyTx.wait();
       console.log("Updated census with a new key.");
     }
 
-    // Submit a proof for the election vote
-    let yes_vote_ids = [4, 5]
-    let no_vote_ids = [1, 2, 6]
-    let proof = [BigNumber.from('0x0B26B053BC995FC5E49266F05344F60801E2A09045817CB8A311AAEDF12A00EB'),BigNumber.from('0x116AD460775EFE509612B8DBCB2FDDBF0D27DBC675C814B99F69137D0C484400')];
-    const submitVoteWithProofTx = await elections.submitVotesWithProof(electionId, yes_vote_ids, no_vote_ids, proof);
-    await submitVoteWithProofTx.wait();
-    console.log("Submitted a vote proof for the election.")
+    // We do not submit any proof, as no one voted
 
-    // Close the election
-    const closeElectionTx = await elections.closeElection(electionId);
-    await closeElectionTx.wait();
-    console.log("Final election results: ", (await elections.elections(electionId)).result);
+
+    // Close the election and check the result
+    let election = await closeElectionAndGetResult(batravot);
+
+    expect(election.state).to.equal(2);
+    expect(election.result.totalVotes).to.equal(0);
+    expect(election.result.inFavour).to.equal(0);
   });
 
+  it("One vote `For` counted as `Against`", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
 
+    // Add key to the election census
+    let [pubKey, s, e] = [
+      [BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2A5D9B3DE008C78281332B84E424419067BB59825C835BCABF36DC5F667D6175'), BigNumber.from('0x1932814898D51404A2C6B3DE626CA670C4B1602ABD404A24E00A76C3B057854F')
+    ];
+
+    const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
+    await registerKeyTx.wait();
+    console.log("Registered a key in the census.")
+
+    // Submit a proof for the election vote
+    let [proof] = [
+      [BigNumber.from('0x0D33F58F7CBF6F726A992B9B8C91D106B5BF645E897C1148FC59EA25DE529154'),BigNumber.from('0x03E0083DA22D66EBEF47316F8951298AB8605985FE39FA2B9C00E9744E311B9D')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids = [] // First person in the census voted yes
+    let no_vote_ids = [0] // No one voted no
+
+
+    await expect(submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof))
+        .to.be.revertedWith("Verification check did not pass");
+  });
+
+  it("Proof for different Public Key", async function () {
+    const batravot = await deployElectionContract();
+    await startNewElection(batravot);
+
+    // Add key to the election census
+    let [pubKey, s, e] = [
+      [BigNumber.from('0x1E9DD2CA209DAB588277365B9316257F40199D2DFEDBF4B007F5069FCBD7595D'),BigNumber.from('0x17700552D117EB4E4A2A69DFFC989AE48D0C2375EC30EC7D42B5189EA1CC56DF')], BigNumber.from('0x2A5D9B3DE008C78281332B84E424419067BB59825C835BCABF36DC5F667D6175'), BigNumber.from('0x1932814898D51404A2C6B3DE626CA670C4B1602ABD404A24E00A76C3B057854F')
+    ];
+
+    const registerKeyTx = await batravot.registerInCensus(pubKey, [s, e]);
+    await registerKeyTx.wait();
+    console.log("Registered a key in the census.")
+
+    // Submit a proof for the election vote
+    let [proof] = [
+      [BigNumber.from('0x04B53F3E0409026BDA203C94C3AE70B5C102A19C00B59D6A39CFF90A4E646DA2'),BigNumber.from('0x238D992B2BE53D811F597DF2F0787FCBF04D51A386F4F978676602481399DBE5')]
+    ];
+
+    // Who voted for whom
+    let yes_vote_ids = [0] // First person in the census voted yes
+    let no_vote_ids = [] // No one voted no
+
+
+    await expect(submitElectionProof(batravot, yes_vote_ids, no_vote_ids, proof))
+        .to.be.revertedWith("Verification check did not pass");
+  });
 });

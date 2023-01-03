@@ -1,8 +1,7 @@
-use ark_ec::group::Group;
 use ark_ec::{PairingEngine, ProjectiveCurve};
-use ark_ff::{BigInteger256, Zero};
+use ark_ff::{Zero};
 use crate::curve_abstr::{G1, G2};
-use crate::{Curve, curve_abstr, ElectionSpecifiers, Vote};
+use crate::{Curve, ElectionSpecifiers, Vote};
 use crate::prover::ElectionResult;
 
 pub fn verify_election(election_result: &ElectionResult, specifiers: &ElectionSpecifiers, census: &Vec<G1>) -> bool {

@@ -7,9 +7,8 @@ use sha256::digest;
 // Re-export curve to abstract away the curve implementation
 pub use ark_bn254 as curve;
 pub use ark_bn254::Bn254 as Curve;
-use ark_bn254::Fq;
 
-pub use crate::curve_abstr::curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField};
+pub use curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField, Fq};
 
 /**
  * Provides parameters that needs to be hardcoded for the curve
@@ -71,5 +70,16 @@ impl SolidityConverter {
         format!("BigNumber.from(\'0x{}\')", field).replace("Fp256 \"(", "").replace(")\"", "")
     }
 
+    pub(crate) fn convert_scalar(field: &ScalarField) -> String {
+        format!("BigNumber.from(\'0x{}\')", field).replace("Fp256 \"(", "").replace(")\"", "")
+    }
 
+    pub(crate) fn covert_bytes_to_bigint(bytes: [u8; 32]) -> String {
+        let mut bytes_repr = Vec::new();
+        for i in 0..32 {
+            let byte = bytes[i];
+            bytes_repr.push(format!("{:02x}", byte));
+        }
+        return format!("BigNumber.from(\'0x{}\')", bytes_repr.join(""));
+    }
 }

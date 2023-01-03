@@ -11,6 +11,10 @@ ark-ff = { version = "0.3" }
 ark-ec = { version = "0.3" }
 ark-serialize = { version = "0.3" }
 ark-bn254 = { version = "0.3", features = [ "curve" ] }
+
 rand = { version = "0.8", features = [ "std", "std_rng" ] }
-num-bigint = { version = "0.4" }
+rand_chacha = "0.3.1" # For deterministic randomness
+
+num-bigint = { version = "0.4" } # To support big integers used in Solidity
 sha256 = { version = "1.1.1" }
+web3 = { version = "0.18.0" }
