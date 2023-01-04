@@ -34,13 +34,12 @@ library SchnorrSignature {
 }
 
 // This is a test contract to verify the Schnorr signature is working
-contract SchnorrSignatureContract {
+contract SchnorrSignatureTest {
 
     /**
       * Check that the contract receives the correct signature for the given public key
       */
     function verifySignature(BN254.G1 memory pubKey, SchnorrSignature.Sign memory sign) public view returns (bool) {
-        uint256 prk = 0x1127D5330DDF554472DD2895A5D19666B8BCED40E061F3B26303FC4D90EC64E6;
         uint256 k = 0x269A2F04B8A92C5C13F4E3EFFB1CA64AE90F34805543270B3C9E6120309687DC;
         BN254.G1 memory r = BN254.mul(BN254.P1(), k);
         BN254.G1 memory r_used = BN254.G1 ({

@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 // Import the BN254 library
 import "./BN254.sol";
 import "./SchnorrSignature.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BatRaVot {
 
@@ -35,15 +36,18 @@ contract BatRaVot {
 
     /** Stores the result of the election **/
     struct ElectionResult {
-        uint256 totalVotes;
-        uint256 inFavour;
+        uint256 possibleVotes; // How many votes were possible
+        uint256 totalVoters; // How many voters voted
+        uint256 yesVoters; // How many voters voted yes
+        uint256 totalVotes; // How many weighted votes were cast
+        uint256 yesVotes; // How many weighted votes were cast for yes
     }
 
     /** Stores the metadata of the election **/
     struct Election {
         string topic;
         uint256 electionId;
-        mapping (uint256 => Vote) votes; // Which each voter voted for
+        mapping (address => Vote) votes; // Which each voter voted for
         Specifiers specifiers;
         State state;
         ElectionResult result;
@@ -51,26 +55,33 @@ contract BatRaVot {
 
     Election[] public elections;
 
-    // The max length of census is 2^256 - 1
-    // TODO - Consider changing to mapping
-    BN254.G1[] public census;
+    // List of registered voters so that we can iterate over them
+    // TODO - This might be done more efficiently by combining the two
+    address[] public voters;
+    // The mapping between a voter and their public key
+    mapping (address => BN254.G1) public census;
+    IERC20 public votingToken;
 
-
+    /**
+     * @param _votingToken - The ERC20 token that will be used to vote
+     */
+    constructor(IERC20 _votingToken) {
+        votingToken = _votingToken;
+    }
 
     /**
      * Register a voter public key [G1] in the census
      * To make sure this is a valid voter, we make the voter submit a schnorr signature
      */
-    function registerInCensus(BN254.G1 memory pubKey, SchnorrSignature.Sign memory sign) public returns (bool) {
+    function registerVoter(BN254.G1 memory pubKey, SchnorrSignature.Sign memory sign) external {
         // Check that the pubKey has a corresponding private key
         require(SchnorrSignature.verify(pubKey, sign), "Invalid signature");
+        // This is just a filter to make sure that the voters have token balances
+        require(votingToken.balanceOf(msg.sender) > 0, "You must have voting tokens to register");
 
-        census.push(pubKey);
-
-        // TODO - this needs to have some logic to prevent arbitrary people from entering the census
-        // TODO - we need to check if the public key is already in the census (maybe use a mapping)
-        // TODO - we need to check if the public key has a known private key (use Schnorr signature)
-        return true;
+        // Add the voter to the list of voters
+        voters.push(msg.sender);
+        census[msg.sender] = pubKey;
     }
 
 
@@ -113,17 +124,18 @@ contract BatRaVot {
     }
 
 
-    function submitVotesWithProof(uint256 electionId, uint256[] calldata votersFor, uint256[] calldata votersAgainst, BN254.G1 memory electionProof) public {
+    function submitVotesWithProof(uint256 electionId, address[] calldata votersFor, address[] calldata votersAgainst, BN254.G1 memory electionProof) public {
         require(electionId < elections.length, "Requesting specifiers for election that does not yet exist");
         Election storage election = elections[electionId];
         require(election.state == State.Vote, "Providing proof for election that is not active");
         require(votersFor.length > 0 || votersAgainst.length > 0, "Can not submit a proof for no voters");
 
         BN254.G1 memory inFavourKeySum;
-        uint256 voterId;
+        address voterId;
         // Sum together all keys of voter who voted For
         // If no voters against, we will not use this value
-        if (votersFor.length != 0) { // TODO - check if the votersFor and votersAgainst are within the range of the census
+        if (votersFor.length != 0) {
+            require(census[votersFor[0]].X != 0, "Voter does not exist");
             inFavourKeySum = census[votersFor[0]];
             for (uint256 i = 1; i < votersFor.length; i++) {
                 voterId = votersFor[i];
@@ -136,6 +148,7 @@ contract BatRaVot {
         BN254.G1 memory againstKeySum;
         // Sum together all keys of voter who voted For
         if (votersAgainst.length != 0) {
+            require(census[votersAgainst[0]].X != 0, "Voter does not exist");
             againstKeySum = census[votersAgainst[0]];
             for (uint256 i = 1; i < votersAgainst.length; i++) {
                 voterId = votersAgainst[i];
@@ -195,32 +208,46 @@ contract BatRaVot {
     /**
      * End an ongoing election and stop accepting new votes as well as proofs for new results
      */
-    function closeElection(uint256 electionId) public returns (bool) {
+    function closeElection(uint256 electionId) public {
         require(electionId < elections.length, "The election does not yet exist");
         require(elections[electionId].state == State.Vote, "The election must be in Vote state");
         // Change state of the election to End
         elections[electionId].state = State.End;
 
-        uint256 against = 0;
-        uint256 inFavour = 0;
-        // Calculate how everyone has voted and sum up the results to get the final results
-        for (uint256 i = 0; i < census.length; i++) {
+        uint256 yesVoters = 0;
+        uint256 noVoters = 0;
+        uint256 yesVotes = 0;
+        uint256 noVotes = 0;
 
-            if (elections[electionId].votes[i] == Vote.For) {
-                inFavour++;
+        // Calculate how everyone has voted and sum up the results to get the final results
+        // This is the point when we count all the votes based on the amount of tokens each voter has
+        // As this function is called only once, we can not have a double vote attack
+        // TODO - make sure that the this function must be called at least one block after the last vote is submitted
+        // TODO - this will prevent the flash loan attack. One can also specify a trusted party to call this function
+        for (uint256 i = 0; i < voters.length; i++) {
+            address voterId = voters[i];
+
+            if (elections[electionId].votes[voterId] == Vote.For) {
+                yesVotes += votingToken.balanceOf(voterId);
+                yesVoters++;
+
             }
 
-            if (elections[electionId].votes[i] == Vote.Against) {
-                against++;
+            if (elections[electionId].votes[voterId] == Vote.Against) {
+                noVotes += votingToken.balanceOf(voterId);
+                noVoters++;
             }
         }
 
         // Update the vote results in the election
-        elections[electionId].result = ElectionResult(against + inFavour, inFavour);
+        elections[electionId].result = ElectionResult(
+            votingToken.totalSupply(),
+            yesVoters + noVoters,
+            yesVoters,
+            yesVotes + noVotes,
+            yesVotes
+        );
 
-        // TODO - add event emission
-
-        return true;
     }
 
 }

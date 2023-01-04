@@ -1,6 +1,7 @@
 use ark_ff::Zero;
+
 use crate::curve_abstr::G1;
-use crate::Vote;
+use crate::voter::Vote;
 use crate::voter::Ballot;
 
 pub fn generate_proof(ballots: &Vec<Ballot>) -> ElectionResult {

@@ -9,6 +9,8 @@ pub use ark_bn254 as curve;
 pub use ark_bn254::Bn254 as Curve;
 
 pub use curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField, Fq};
+use crate::converter::JSConverter;
+
 
 /**
  * Provides parameters that needs to be hardcoded for the curve
@@ -16,10 +18,10 @@ pub use curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField, Fq};
  */
 pub fn print_curve_params() {
     // G1 and G2 are the generators of the curve
-    println!("G1: {}", SolidityConverter::convert_g1(&G1::prime_subgroup_generator()));
-    println!("G1 Zero: {}", SolidityConverter::convert_g1(&G1::zero()));
-    println!("G2: {}", SolidityConverter::convert_g2(&G2::prime_subgroup_generator()));
-    println!("G2Inverse: {}", SolidityConverter::convert_g2(&G2::prime_subgroup_generator().neg()));
+    println!("G1: {}", JSConverter::convert_g1(&G1::prime_subgroup_generator()));
+    println!("G1 Zero: {}", JSConverter::convert_g1(&G1::zero()));
+    println!("G2: {}", JSConverter::convert_g2(&G2::prime_subgroup_generator()));
+    println!("G2Inverse: {}", JSConverter::convert_g2(&G2::prime_subgroup_generator().neg()));
     println!("Done printing curve params.\n\n");
 }
 
@@ -43,43 +45,4 @@ pub(crate) fn hash(x: &Vec<u8>) -> (G1, G2) {
     assert!(g2hash != G2::zero());
 
     (g1hash, g2hash)
-}
-
-/**
- * Convert code to the format that we will use in hardhat
- * to interact with the smart contract
- */
-pub struct SolidityConverter;
-
-impl SolidityConverter {
-    pub fn convert_g1(point: &G1) -> String {
-        let affine = point.into_affine();
-        let x = affine.x;
-        let y = affine.y;
-        format!("[{},{}]", SolidityConverter::convert_bi(&x), SolidityConverter::convert_bi(&y))
-    }
-
-    pub fn convert_g2(point: &G2) -> String {
-        let affine = point.into_affine();
-        let x = affine.x;
-        let y = affine.y;
-        format!("[[{},{}],[{},{}]]", SolidityConverter::convert_bi(&x.c1), SolidityConverter::convert_bi(&x.c0), SolidityConverter::convert_bi(&y.c1), SolidityConverter::convert_bi(&y.c0))
-    }
-
-    fn convert_bi(field: &Fq) -> String {
-        format!("BigNumber.from(\'0x{}\')", field).replace("Fp256 \"(", "").replace(")\"", "")
-    }
-
-    pub(crate) fn convert_scalar(field: &ScalarField) -> String {
-        format!("BigNumber.from(\'0x{}\')", field).replace("Fp256 \"(", "").replace(")\"", "")
-    }
-
-    pub(crate) fn covert_bytes_to_bigint(bytes: [u8; 32]) -> String {
-        let mut bytes_repr = Vec::new();
-        for i in 0..32 {
-            let byte = bytes[i];
-            bytes_repr.push(format!("{:02x}", byte));
-        }
-        return format!("BigNumber.from(\'0x{}\')", bytes_repr.join(""));
-    }
 }

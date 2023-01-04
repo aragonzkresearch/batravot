@@ -3,18 +3,26 @@ use ark_ec::group::Group;
 use ark_ec::ProjectiveCurve;
 use ark_ff::{BigInteger, BigInteger256, PrimeField};
 use ark_std::UniformRand;
-use rand::Rng;
-use crate::curve_abstr::{G1, ScalarField};
-use crate::{ElectionSpecifiers, SolidityConverter};
+use rand::{Rng};
+use web3::types::Address;
+use secp256k1::{SecretKey};
+use web3::signing::Key;
 
+use crate::curve_abstr::{G1, ScalarField};
+use crate::election::ElectionSpecifiers;
+use crate::converter::JSConverter;
 
 /**
  * A voter is a struct that contains the private and public keys of a voter.
  * The private key is a scalar field element, and the public key is a point on the G1 curve.
+ * @param address: The address of the voter.
  */
 pub struct Voter {
-    pub prk: ScalarField,
-    pub pbk: G1,
+    election_prk: ScalarField,
+    pub election_pbk: G1,
+    pub eth_prk: [u8; 32],
+    pub eth_address: Address,
+    pub tokens: u64,
 }
 
 impl Voter {
@@ -22,14 +30,32 @@ impl Voter {
      * Create a new voter with a random private key and public key
      */
     pub fn new<T: Rng>(rng: &mut T) -> Self {
-        // A random scalar field element
-        let prk = ScalarField::rand(rng);
-        // prk * G1
+        // Generate Ethereum address details
+
+        let mut private_key = [0; 32];
+        rng.fill_bytes(&mut private_key);
+
+        // Generate secret key from private key and public key from secret key
+        let secret_key = SecretKey::from_slice(&private_key[..]).unwrap();
+        let secret_key_ref = web3::signing::SecretKeyRef::new(&secret_key);
+
+        let address = secret_key_ref.address();
+
+        // Generate the random amount of tokens. This is a number multiple of 5 and 2
+        let tokens = 2u64.pow(rng.gen_range(0..4)) * 5u64.pow(rng.gen_range(0..4));
+
+        // Generate election voting parameters
+        // We have the election private key be equal to the Ethereum private key mod the curve order
+        let prk = ScalarField::from_be_bytes_mod_order(&private_key[..]);
+        // Public Key = prk * G1
         let pbk = G1::prime_subgroup_generator().mul(prk.into_repr());
 
         Self {
-            prk,
-            pbk,
+            election_prk: prk,
+            election_pbk: pbk,
+            eth_prk: private_key,
+            eth_address: address,
+            tokens
         }
     }
 
@@ -49,13 +75,13 @@ impl Voter {
 
         // Generate a vote proof
         // [specifiers in G1] * prk
-        let vote_proof = specifier.mul(&self.prk);
+        let vote_proof = specifier.mul(&self.election_prk);
 
         // Generate a ballot
         let ballot = Ballot {
             vote,
             vote_proof,
-            pbk: self.pbk.clone()
+            pbk: self.election_pbk.clone()
         };
 
         ballot
@@ -76,7 +102,7 @@ impl Voter {
             ScalarField::from_be_bytes_mod_order(hash.as_slice())
         };
 
-        let s = k - e.clone() * self.prk.clone();
+        let s = k - e.clone() * self.election_prk.clone();
         
         Signature {
             e,
@@ -112,7 +138,7 @@ pub struct Ballot {
 // Overwrite the default Display implementation to print the vote_proof and pbk as affine points
 impl fmt::Display for Ballot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Ballot: Vote: {:?}, Vote proof: {}, Voter public key: {}", self.vote, SolidityConverter::convert_g1(&self.vote_proof), SolidityConverter::convert_g1(&self.pbk))
+        write!(f, "Ballot: Vote: {:?}, Vote proof: {}, Voter public key: {}", self.vote, JSConverter::convert_g1(&self.vote_proof), JSConverter::convert_g1(&self.pbk))
     }
 }
 
@@ -126,3 +152,14 @@ pub struct Signature {
     pub s: ScalarField,
 }
 
+#[allow(dead_code)]
+fn simulate_schnorr_signature<T : Rng>(rng: &mut T) {
+    let voter = Voter::new(rng);
+
+    let pub_key = JSConverter::convert_g1(&voter.election_pbk);
+    println!("Public key: {}", pub_key);
+    let priv_key = JSConverter::convert_scalar(&voter.election_prk);
+    println!("Private key: {}", priv_key);
+    let sign = &voter.generate_signature(rng);
+    println!("Signature: {{ s : {}, e : {}}} ", JSConverter::convert_scalar(&sign.s), JSConverter::convert_scalar(&sign.e));
+}
