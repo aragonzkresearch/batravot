@@ -1,22 +1,24 @@
-[package]
-name = "batravot"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "batravot-lib",
+    "batravot-batcher",
+    "batravot-voter",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-ark-std = { version = "0.3" }
-ark-ff = { version = "0.3" }
-ark-ec = { version = "0.3" }
-ark-serialize = { version = "0.3" }
-ark-bn254 = { version = "0.3", features = [ "curve" ] }
-
-rand = { version = "0.8", features = [ "std", "std_rng" ] }
-rand_chacha = "0.3.1" # For deterministic randomness
-
-num-bigint = { version = "0.4" } # To support big integers used in Solidity
-sha256 = { version = "1.1.1" }
-secp256k1 = { version = "0.21.3" } # To generate ETH private key and address
-hex = { version = "0.4.3" } # For printing hex values
-web3 = { version = "0.18.0" }
+#[dependencies]
+#ark-std = { version = "0.3" }
+#ark-ff = { version = "0.3" }
+#ark-ec = { version = "0.3" }
+#ark-serialize = { version = "0.3" }
+#ark-bn254 = { version = "0.3", features = [ "curve" ] }
+#
+#rand = { version = "0.8", features = [ "std", "std_rng" ] }
+#rand_chacha = "0.3.1" # For deterministic randomness
+#
+#num-bigint = { version = "0.4" } # To support big integers used in Solidity
+#sha256 = { version = "1.1.1" }
+#secp256k1 = { version = "0.21.3" } # To generate ETH private key and address
+#hex = { version = "0.4.3" } # For printing hex values
+#web3 = { version = "0.18.0" }
