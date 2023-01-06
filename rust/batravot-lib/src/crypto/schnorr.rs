@@ -19,7 +19,7 @@ impl SchnorrSignature {
     /// prk: The private key of the voter
     /// rng: A random number generator
     /// Returns a Schnorr signature
-    pub fn generate(prk: &ScalarField, rng: &mut impl Rng) -> SchnorrSignature {
+    pub fn generate_key_proof(prk: &ScalarField, rng: &mut impl Rng) -> SchnorrSignature {
 
         let k = ScalarField::rand(rng);
         let r = G1::prime_subgroup_generator().mul(k.clone().into_repr());

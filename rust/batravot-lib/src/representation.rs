@@ -3,6 +3,7 @@ use ark_ec::short_weierstrass_jacobian::GroupProjective;
 use ark_ff::{BigInteger, BigInteger256};
 
 use crate::el_curve::{curve, CurveBaseField, ScalarField};
+use crate::SchnorrSignature;
 
 /// This trait is used to convert a complex type to a type that Solidity can understand
 pub trait SolidityRepresentable {
@@ -72,5 +73,16 @@ impl JavaScriptRepresentable for GroupProjective<curve::g2::Parameters> {
     fn javascript_repr(&self) -> String {
         let affine = self.into_affine();
         format!("[[{}, {}], [{}, {}]]", affine.x.c1.javascript_repr(), affine.x.c0.javascript_repr(), affine.y.c1.javascript_repr(), affine.y.c0.javascript_repr())
+    }
+}
+
+impl SolidityRepresentable for SchnorrSignature {
+    fn solidity_repr(&self) -> String {
+        format!("[{}, {}]", self.s.solidity_repr(), self.e.solidity_repr())
+    }
+}
+impl JavaScriptRepresentable for SchnorrSignature {
+    fn javascript_repr(&self) -> String {
+        format!("[{}, {}]", self.s.javascript_repr(), self.e.javascript_repr())
     }
 }

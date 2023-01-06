@@ -35,13 +35,41 @@ pub mod batcher {
 
     /// This function generates a proof for vote aggregation
     /// vote_proofs: The proofs of the votes to aggregate
-    pub fn generate_aggregation_proof(vote_proofs: &Vec<G1>) -> G1 {
+    pub fn generate_aggregation_proof(vote_proofs: &Vec<&G1>) -> G1 {
 
         // The proof is the sum of all the vote proofs
-        let mut proof = vote_proofs.iter()
-            .fold(G1::zero(), |acc, x| acc + x);
+        let proof = vote_proofs.iter()
+            .fold(G1::zero(), |acc, x| acc + *x);
 
         proof
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use ark_ec::ProjectiveCurve;
+        use super::*;
+
+        #[test]
+        fn test_generate_aggregation_proof() {
+            let proof1 = G1::prime_subgroup_generator();
+            let proof2 = G1::prime_subgroup_generator().mul(2);
+            let proof3 = G1::prime_subgroup_generator().mul(3);
+
+            let proofs = vec![&proof1, &proof2, &proof3];
+
+            let proof = generate_aggregation_proof(&proofs);
+
+            assert_eq!(proof, proof1 + proof2 + proof3);
+
+
+            #[test]
+            fn election_proof_of_one_proof_equals_to_that_proof() {
+                let proof = G1::prime_subgroup_generator();
+                let proof_vec = vec![&proof];
+                let aggregation_proof = generate_aggregation_proof(&proof_vec);
+                assert_eq!(proof, aggregation_proof);
+            }
+        }
     }
 }
 
@@ -61,10 +89,10 @@ pub mod verifier {
     /// specifiers: The election specifiers
     pub fn validate_election_proof(for_vote_keys: &Vec<G1>, against_vote_keys: &Vec<G1>, proof: &G1, specifiers: &election_specifiers::ElectionSpecifiers) -> bool {
         // Calculate the sum of all the vote proofs for those who voted yes and no
-        let mut for_vote_sum = for_vote_keys.iter()
+        let for_vote_sum = for_vote_keys.iter()
             .fold(G1::zero(), |acc, x| acc + x);
 
-        let mut against_vote_sum = against_vote_keys.iter()
+        let against_vote_sum = against_vote_keys.iter()
             .fold(G1::zero(), |acc, x| acc + x);
 
         // Compute the proof pairing
@@ -88,10 +116,10 @@ pub mod verifier {
     /// specifiers: The election specifiers
     pub fn validate_election_proof_evm(for_vote_keys: &Vec<G1>, against_vote_keys: &Vec<G1>, proof: &G1, specifiers: &election_specifiers::ElectionSpecifiers) -> bool {
         // Calculate the sum of all the vote proofs for those who voted yes and no
-        let mut for_key_sum = for_vote_keys.iter()
+        let for_key_sum = for_vote_keys.iter()
             .fold(G1::zero(), |acc, x| acc + x);
 
-        let mut against_key_sum = against_vote_keys.iter()
+        let against_key_sum = against_vote_keys.iter()
             .fold(G1::zero(), |acc, x| acc + x);
 
         // We will branch based on if there were voters or not for particular type
