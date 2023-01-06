@@ -8,7 +8,7 @@ pub mod representation;
 /// Re-export cryptography functions of the BatRaVot
 pub use crypto::{voter, batcher, verifier};
 pub use crypto::schnorr::SchnorrSignature;
-pub use el_curve::{G1, G2, ScalarField};
+pub use el_curve::{G1, G2, ScalarField, CurveBaseField};
 
 // Re-export useful structs
 pub use election_specifiers::ElectionSpecifiers;

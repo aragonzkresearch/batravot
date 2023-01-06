@@ -39,7 +39,7 @@ impl SchnorrSignature {
     /// pbk: The public key of the voter
     /// signature: The signature to verify
     /// Returns true if the signature is valid, false otherwise
-    fn verify(pbk: &G1, signature: &SchnorrSignature) -> bool {
+    pub fn verify(pbk: &G1, signature: &SchnorrSignature) -> bool {
         let r = G1::prime_subgroup_generator().mul(signature.s.clone().into_repr()) + pbk.clone().mul(signature.e.clone().into_repr());
 
         let e_computed = Self::hash_point_into_scalar(&r);
@@ -64,7 +64,7 @@ fn test_schnorr_signature() {
     let prk = ScalarField::rand(&mut rng);
     let pbk = G1::prime_subgroup_generator().mul(prk.into_repr());
 
-    let signature = SchnorrSignature::generate(&prk, &mut rng);
+    let signature = SchnorrSignature::generate_key_proof(&prk, &mut rng);
 
     assert!(SchnorrSignature::verify(&pbk, &signature));
 }

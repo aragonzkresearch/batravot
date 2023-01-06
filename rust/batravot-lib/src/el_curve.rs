@@ -15,7 +15,7 @@ pub use ark_bn254 as curve;
 pub use ark_bn254::Bn254 as Curve;
 
 /// Explicit re-exports of useful curve primitives
-pub use curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField, Fq as CurveBaseField};
+pub use curve::{G1Projective as G1, G2Projective as G2, Fr as ScalarField, Fq as CurveBaseField, Fq2 as CurveExtensionField};
 
 /// The function converts an array of bytes to a point on the curve as well as on curve extension
 pub(crate) fn convert_to_point(x: &[u8]) -> (G1, G2) {

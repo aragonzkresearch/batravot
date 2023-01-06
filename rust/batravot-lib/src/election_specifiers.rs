@@ -11,8 +11,8 @@ use crate::el_curve::{convert_to_point, G1, G2};
 /// The election specifiers are used to generate the ballots for a given election
 #[derive(PartialEq)]
 pub struct ElectionSpecifiers {
-    pub no: (G1, G2),
-    pub yes: (G1, G2),
+    pub against: (G1, G2),
+    pub forr: (G1, G2),
 }
 
 
@@ -34,8 +34,8 @@ impl ElectionSpecifiers {
         let yes = Self::hash_into_ec_points(yes_unhashed_specifier.deref());
 
         let specifier = ElectionSpecifiers {
-            no,
-            yes,
+            against: no,
+            forr: yes,
         };
 
         specifier

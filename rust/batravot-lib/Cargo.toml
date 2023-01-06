@@ -15,5 +15,7 @@ sha3 = "0.10.6"
 
 hex = { version = "0.4.3" } # For printing hex values
 
+web3 = { version = "0.18.0" }
+
 [dev-dependencies]
 rand_chacha = "0.3.1" # For deterministic randomness in tests

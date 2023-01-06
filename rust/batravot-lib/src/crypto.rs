@@ -35,7 +35,7 @@ pub mod batcher {
 
     /// This function generates a proof for vote aggregation
     /// vote_proofs: The proofs of the votes to aggregate
-    pub fn generate_aggregation_proof(vote_proofs: &Vec<&G1>) -> G1 {
+    pub fn generate_batched_election_proof(vote_proofs: &Vec<&G1>) -> G1 {
 
         // The proof is the sum of all the vote proofs
         let proof = vote_proofs.iter()
@@ -47,28 +47,28 @@ pub mod batcher {
     #[cfg(test)]
     mod tests {
         use ark_ec::ProjectiveCurve;
+        use crate::ScalarField;
         use super::*;
 
         #[test]
         fn test_generate_aggregation_proof() {
             let proof1 = G1::prime_subgroup_generator();
-            let proof2 = G1::prime_subgroup_generator().mul(2);
-            let proof3 = G1::prime_subgroup_generator().mul(3);
+            let proof2 = G1::prime_subgroup_generator().mul(ScalarField::from(2u64).0);
+            let proof3 = G1::prime_subgroup_generator().mul(ScalarField::from(3u64).0);
 
             let proofs = vec![&proof1, &proof2, &proof3];
 
-            let proof = generate_aggregation_proof(&proofs);
+            let proof = generate_batched_election_proof(&proofs);
 
             assert_eq!(proof, proof1 + proof2 + proof3);
+        }
 
-
-            #[test]
-            fn election_proof_of_one_proof_equals_to_that_proof() {
-                let proof = G1::prime_subgroup_generator();
-                let proof_vec = vec![&proof];
-                let aggregation_proof = generate_aggregation_proof(&proof_vec);
-                assert_eq!(proof, aggregation_proof);
-            }
+        #[test]
+        fn election_proof_of_one_proof_equals_to_that_proof() {
+            let proof = G1::prime_subgroup_generator();
+            let proof_vec = vec![&proof];
+            let aggregation_proof = generate_batched_election_proof(&proof_vec);
+            assert_eq!(proof, aggregation_proof);
         }
     }
 }
@@ -100,9 +100,9 @@ pub mod verifier {
         // Compute the product of pairing of the sum of keys that voted yes and the yes specifier
         // And the pairing of the sum of keys that voted no and the no specifier
         let rhs =
-            Curve::pairing(for_vote_sum, specifiers.yes.1.clone())
+            Curve::pairing(for_vote_sum, specifiers.forr.1.clone())
                 *
-                (Curve::pairing(against_vote_sum, specifiers.no.1.clone()));
+                (Curve::pairing(against_vote_sum, specifiers.against.1.clone()));
 
         // If the election proof is valid, the pairing of the valid votes and the generator should be equal to the product of the pairings of the sum of keys that voted yes and the yes specifier
         lhs == rhs
@@ -126,12 +126,12 @@ pub mod verifier {
         // We will calculate the product of correct pairings
         let proof_pairing = Curve::pairing(proof.clone(), G2::prime_subgroup_generator().neg());
         let product = proof_pairing * if against_vote_keys.is_empty() {
-            Curve::pairing(for_key_sum, specifiers.yes.1.clone())
+            Curve::pairing(for_key_sum, specifiers.forr.1.clone())
         } else if for_vote_keys.is_empty() {
-            Curve::pairing(against_key_sum, specifiers.no.1.clone())
+            Curve::pairing(against_key_sum, specifiers.against.1.clone())
         } else {
-            let against_key_sum_pairing = Curve::pairing(against_key_sum.clone(), specifiers.no.1.clone());
-            let for_key_sum_pairing = Curve::pairing(for_key_sum.clone(), specifiers.yes.1.clone());
+            let against_key_sum_pairing = Curve::pairing(against_key_sum.clone(), specifiers.against.1.clone());
+            let for_key_sum_pairing = Curve::pairing(for_key_sum.clone(), specifiers.forr.1.clone());
             against_key_sum_pairing * for_key_sum_pairing
         };
 

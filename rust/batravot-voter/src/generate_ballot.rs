@@ -8,6 +8,9 @@ use crate::common::{get_election_id, get_election_prk};
 /// It will request the user to provide the election ID, the election private key, and the vote
 /// It will then generate the ballot and print it to the screen
 pub(crate) fn generate_ballot(rng: &mut impl Rng) -> Result<(), String> {
+    // Describe what the current mode is
+    println!("{}", "Generating a ballot for the voter".green());
+
     // Get the election private key of the voter
     let election_prk = get_election_prk(rng)?;
     let election_pbk = voter::generate_public_key(&election_prk);
@@ -24,8 +27,8 @@ pub(crate) fn generate_ballot(rng: &mut impl Rng) -> Result<(), String> {
 
     // Generate a proof of the vote
     let vote_specifier = match vote {
-        Vote::For => &specifiers.yes.0,
-        Vote::Against => &specifiers.no.0,
+        Vote::For => &specifiers.forr.0,
+        Vote::Against => &specifiers.against.0,
     };
     let vote_proof = voter::generate_vote_proof(&election_prk, &vote_specifier);
 
@@ -54,9 +57,9 @@ pub(crate) fn generate_ballot(rng: &mut impl Rng) -> Result<(), String> {
 fn get_vote() -> Result<Vote, String> {
 
     // Ask the user to select how they want to vote
-    println!("How do you want to vote?");
+    println!("\nHow do you want to vote?");
     println!("[+] For");
-    println!("[-] Against");
+    println!("[-] against");
     loop {
         let mut vote = String::new();
         std::io::stdin().read_line(&mut vote)

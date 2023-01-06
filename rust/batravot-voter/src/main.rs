@@ -5,9 +5,6 @@ use batravot_voter::{ExecutionMode, run};
 /// If there are any errors in the execution and prints them in error stream
 fn main() {
 
-    // Clean the screen
-    println!("\n\n");
-
     // Random number generator for the voter
     let mut rng = rand::thread_rng();
 
@@ -16,9 +13,9 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let mode = if args.len() < 2 {
         eprintln!("Please provide an execution mode. The available modes are:");
-        eprintln!("  - {}:    Generate a vote ballot", ExecutionMode::GenerateBallot);
-        eprintln!("  - {}:     Generate a Schnorr key proof", ExecutionMode::GenerateKeyProof);
-        eprintln!("  - {}:    Verify the election specifiers", ExecutionMode::VerifySpecifiers);
+        eprintln!("  - {}:    Generate a Vote Ballot", ExecutionMode::GenerateBallot);
+        eprintln!("  - {}:    Generate a Schnorr Key Proof", ExecutionMode::GenerateKeyProof);
+        eprintln!("  - {}:    Generate specifiers for the Election Id", ExecutionMode::GenerateSpecifiers);
         process::exit(1);
     } else {
         &args[1]

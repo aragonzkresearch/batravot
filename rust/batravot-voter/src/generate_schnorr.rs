@@ -1,3 +1,4 @@
+use colored::Colorize;
 use rand::Rng;
 use batravot_lib::representation::SolidityRepresentable;
 use batravot_lib::{SchnorrSignature, voter};
@@ -7,6 +8,9 @@ use crate::common::get_election_prk;
 /// It will request the user to provide the election private key
 /// It will then generate the Schnorr key proof and print it to the screen
 pub(crate) fn generate_schnorr_key_proof(rng: &mut impl Rng) -> Result<(), String> {
+    // Describe what the current mode is
+    println!("{}", "Generating a Schnorr key proof for the voter".green());
+
     // Get the election private key of the voter
     let election_prk = get_election_prk(rng)?;
     let election_pbk = voter::generate_public_key(&election_prk);

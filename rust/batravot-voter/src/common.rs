@@ -13,7 +13,7 @@ pub(crate) fn get_election_prk(rng: &mut impl Rng) -> Result<ScalarField, String
 
 
     loop {
-        println!("Do you want to use the preexisting or generate a new election private key?");
+        println!("\nDo you want to use the preexisting or generate a new election private key?");
         println!("1 - Use a preexisting election private key");
         println!("2 - Generate a new election private key");
         println!("3 - Exit");
@@ -23,7 +23,7 @@ pub(crate) fn get_election_prk(rng: &mut impl Rng) -> Result<ScalarField, String
 
         let election_private_key = match choice.trim() {
             "1" => {
-                println!("Please provide the preexisting election private key:");
+                println!("\nPlease provide the preexisting election private key:");
                 println!("And example of a valid election private key is: 0x0000000000000000000000000000000000000000000000000000000000000001");
                 let mut raw_election_private_key = String::new();
                 io::stdin().read_line(&mut raw_election_private_key)
@@ -74,7 +74,7 @@ pub(crate) fn get_election_prk(rng: &mut impl Rng) -> Result<ScalarField, String
 /// At the same time, we consider parsing errors as non-fatal and will ask the user to provide a valid data
 pub(crate) fn get_election_id() -> Result<u64, String> {
 
-    println!("Please provide the election id:");
+    println!("\nPlease provide the election id:");
 
     loop {
 
@@ -90,7 +90,7 @@ pub(crate) fn get_election_id() -> Result<u64, String> {
         let election_id = match election_id.parse::<u64>() {
             Ok(election_id) => election_id,
             Err(err) => {
-                eprintln!("{}", format!("There was an error parsing election id: {}.\nPlease provide a valid election id", err).red());
+                eprintln!("{}", format!("There was an error parsing the Election Id: {}.\nPlease provide a valid election id", err).red());
                 continue;
             }
         };

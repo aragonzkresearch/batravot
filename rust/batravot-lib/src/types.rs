@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 /// Represents a single vote of a voter
 ///
 /// # Examples
@@ -13,3 +15,16 @@ pub enum Vote {
     Against,
 }
 
+impl FromStr for Vote {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "against" => Ok(Vote::Against),
+            "-" => Ok(Vote::Against),
+            "for" => Ok(Vote::For),
+            "+" => Ok(Vote::For),
+            _ => Err(format!("Invalid vote: {}", s)),
+        }
+    }
+}
