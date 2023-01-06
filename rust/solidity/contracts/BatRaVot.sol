@@ -72,8 +72,21 @@ contract BatRaVot {
     /**
      * Register a voter public key [G1] in the census
      * To make sure this is a valid voter, we make the voter submit a schnorr signature
+     *
+     *
+     * Note that this can be called by anyone once the function was initially called by
+     * the owner of the public key. If someone else calls it, they subscribe to the voter
+     * Meaning that their tokens will be counted towards the total votes cast in the election
+     * Without them needing to actively vote. This is a feature, not a bug.
+     * To deregister from the subscription, the voter just needs to register a new public key.
      */
-    function registerVoter(BN254.G1 memory pubKey, SchnorrSignature.Sign memory sign) external {
+    function registerVoter(uint256[2] memory pubKeyRaw, uint256[2] memory signRaw) external {
+
+        // Convert the raw public key into a BN254.G1 point
+        BN254.G1 memory pubKey = BN254.G1(pubKeyRaw[0], pubKeyRaw[1]);
+        // Convert the raw signature into a SchnorrSignature.Sign
+        SchnorrSignature.Sign memory sign = SchnorrSignature.Sign(signRaw[0], signRaw[1]);
+
         // Check that the pubKey has a corresponding private key
         require(SchnorrSignature.verify(pubKey, sign), "Invalid signature");
         // This is just a filter to make sure that the voters have token balances
@@ -96,7 +109,14 @@ contract BatRaVot {
      * TODO - by checking pairing of G1 specifier we generate ourselves and the once provided to us
      * TODO - this will also require changing rust to generate specifier using keccak hash function
      */
-    function createElection(string calldata topic, BN254.G1 memory yesG1Specifier, BN254.G2 memory yesG2Specifier, BN254.G1 memory noG1Specifier, BN254.G2 memory noG2Specifier) public returns (uint256) {
+    function createElection(string calldata topic, uint256[2] memory yesG1SpecifierRaw, uint256[4] memory yesG2SpecifierRaw, uint256[2] memory noG1SpecifierRaw, uint256[4] memory noG2SpecifierRaw) public returns (uint256) {
+
+        // Convert the raw specifiers into BN254.G1 and BN254.G2 points
+        BN254.G1 memory yesG1Specifier = BN254.G1(yesG1SpecifierRaw[0], yesG1SpecifierRaw[1]);
+        BN254.G2 memory yesG2Specifier = BN254.G2([yesG2SpecifierRaw[0], yesG2SpecifierRaw[1]], [yesG2SpecifierRaw[2], yesG2SpecifierRaw[3]]);
+        BN254.G1 memory noG1Specifier = BN254.G1(noG1SpecifierRaw[0], noG1SpecifierRaw[1]);
+        BN254.G2 memory noG2Specifier = BN254.G2([noG2SpecifierRaw[0], noG2SpecifierRaw[1]], [noG2SpecifierRaw[2], noG2SpecifierRaw[3]]);
+
         // Generate a new election
         Specifiers memory specifiers = Specifiers(yesG1Specifier, yesG2Specifier, noG1Specifier, noG2Specifier);
         // Add election to all elections
@@ -124,7 +144,10 @@ contract BatRaVot {
     }
 
 
-    function submitVotesWithProof(uint256 electionId, address[] calldata votersFor, address[] calldata votersAgainst, BN254.G1 memory electionProof) public {
+    function submitVotesWithProof(uint256 electionId, address[] calldata votersFor, address[] calldata votersAgainst, uint256[2] memory electionProofRaw) public {
+        // Convert the raw election proof into a BN254.G1 point
+        BN254.G1 memory electionProof = BN254.G1(electionProofRaw[0], electionProofRaw[1]);
+
         require(electionId < elections.length, "Requesting specifiers for election that does not yet exist");
         Election storage election = elections[electionId];
         require(election.state == State.Vote, "Providing proof for election that is not active");

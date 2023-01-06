@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const {BigNumber} = require("ethers");
 
 
-describe("Testing functionality", function () {
+describe("Testing BatRaVot smart contract", function () {
 
   async function deployDummyToken() {
     const Token = await ethers.getContractFactory("DummyToken");
@@ -30,7 +30,7 @@ describe("Testing functionality", function () {
   async function startNewElection(batravot, electionId = BigNumber.from(0)) {
     // Start a new election
     let specifiers = [
-      [BigNumber.from('0x0BBB345C74D6BF000AD0F434AAE68F0EBF5E8D0C01B38B3CB7845ECCFE21E191'),BigNumber.from('0x0BA96920952842CDA206AE5BB9E2AD805DCD611B6AF18354E38240FCFCAFFCDC')],[[BigNumber.from('0x0950ACA914FBD8FE100C10E06A96E5A49E6E158748F7C55590FA2FC4641A1005'),BigNumber.from('0x008EB64384C56EB92FB492ED1A1D7A0CEE7B97D4AEDB013D3B7F3C9F04802F8D')],[BigNumber.from('0x28303E80836E799DF52A2C30150B134D47F33851BA9CF61CBC5D03390020ECEB'),BigNumber.from('0x0A80BB1538E4E8E43A8C71485B182631498BDBC594D3C3997BF37F172685023F')]],[BigNumber.from('0x2A61B14964039A3E6B01B3D36C85BCD1FBB792951FE80A2121B0402027E0EFAC'),BigNumber.from('0x26810F950DB6996AC407287C1278BE8D88786176FC1042F76BD6C786801674AD')],[[BigNumber.from('0x08F9744D805150402C9CD5E255D6570AC49768DDD2283BC251C37C268FBFA74F'),BigNumber.from('0x09EE2C50FD6CEDB21ADF738360D90EEA72A276D4E41FEC2C40A5DA3539C05F8A')],[BigNumber.from('0x14C6A6472BD8C4F20CEEE61B5B83B106E4FE13FF5945A231391E6A34112B140F'),BigNumber.from('0x1CD7CEA43BFC64233338329A76226D71135482F675BB8160644FBEF892385EC4')]]
+      [BigNumber.from('0x0BBB345C74D6BF000AD0F434AAE68F0EBF5E8D0C01B38B3CB7845ECCFE21E191'),BigNumber.from('0x0BA96920952842CDA206AE5BB9E2AD805DCD611B6AF18354E38240FCFCAFFCDC')],[BigNumber.from('0x0950ACA914FBD8FE100C10E06A96E5A49E6E158748F7C55590FA2FC4641A1005'),BigNumber.from('0x008EB64384C56EB92FB492ED1A1D7A0CEE7B97D4AEDB013D3B7F3C9F04802F8D'),BigNumber.from('0x28303E80836E799DF52A2C30150B134D47F33851BA9CF61CBC5D03390020ECEB'),BigNumber.from('0x0A80BB1538E4E8E43A8C71485B182631498BDBC594D3C3997BF37F172685023F')],[BigNumber.from('0x2A61B14964039A3E6B01B3D36C85BCD1FBB792951FE80A2121B0402027E0EFAC'),BigNumber.from('0x26810F950DB6996AC407287C1278BE8D88786176FC1042F76BD6C786801674AD')],[BigNumber.from('0x08F9744D805150402C9CD5E255D6570AC49768DDD2283BC251C37C268FBFA74F'),BigNumber.from('0x09EE2C50FD6CEDB21ADF738360D90EEA72A276D4E41FEC2C40A5DA3539C05F8A'),BigNumber.from('0x14C6A6472BD8C4F20CEEE61B5B83B106E4FE13FF5945A231391E6A34112B140F'),BigNumber.from('0x1CD7CEA43BFC64233338329A76226D71135482F675BB8160644FBEF892385EC4')]
     ];
 
     let [specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2] = specifiers;
@@ -185,7 +185,7 @@ describe("Testing functionality", function () {
 
   });
 
-  it("One correct vote `Against`", async function () {
+  it("One correct vote `against`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 
@@ -218,7 +218,7 @@ describe("Testing functionality", function () {
     expect(election.result.yesVotes).to.equal(0);
   });
 
-  it("10 correct votes `Against`", async function () {
+  it("10 correct votes `against`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 
@@ -273,7 +273,7 @@ describe("Testing functionality", function () {
 
   });
 
-  it("1 correct vote `For` and 1 correct vote `Against`", async function () {
+  it("1 correct vote `For` and 1 correct vote `against`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 
@@ -311,7 +311,7 @@ describe("Testing functionality", function () {
     expect(election.result.yesVotes).to.equal(40);
   });
 
-  it("2 correct vote `For` and 1 correct vote `Against`", async function () {
+  it("2 correct vote `For` and 1 correct vote `against`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 
@@ -351,7 +351,7 @@ describe("Testing functionality", function () {
     expect(election.result.yesVotes).to.equal(165);
   });
 
-  it("16 correct vote `For` and 19 correct vote `Against`", async function () {
+  it("16 correct vote `For` and 19 correct vote `against`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 
@@ -527,7 +527,7 @@ describe("Testing functionality", function () {
     expect(election.result.yesVotes).to.equal(0);
   });
 
-  it("One vote `For` counted as `Against` Fails", async function () {
+  it("One vote `For` counted as `against` Fails", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
 

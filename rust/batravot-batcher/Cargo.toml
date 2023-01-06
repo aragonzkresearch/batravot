@@ -1,0 +1,11 @@
+[package]
+name = "batravot-batcher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = { version = "2.0.0" }
+
+web3 = { version = "0.18.0" }
+
+batravot-lib = { path = "../batravot-lib" }

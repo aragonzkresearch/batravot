@@ -27,7 +27,6 @@ pub(crate) fn generate_specifiers() -> Result<(), String> {
     println!("Election specifiers For.G2:     {}", election_specifiers.forr.1.solidity_repr());
     println!("Election specifiers Against.G1: {}", election_specifiers.against.0.solidity_repr());
     println!("Election specifiers Against.G2: {}", election_specifiers.against.1.solidity_repr());
-    println!("JS code:                        {}", election_specifiers.javascript_repr());
     println!("----------------------------------------");
 
     Ok(())

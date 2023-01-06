@@ -11,6 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/solidity/cache" />
       <excludeFolder url="file://$MODULE_DIR$/solidity/artifacts" />
       <excludeFolder url="file://$MODULE_DIR$/batravot-voter/target" />
+      <excludeFolder url="file://$MODULE_DIR$/ballots" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

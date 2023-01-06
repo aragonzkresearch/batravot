@@ -5,7 +5,7 @@ const {BigNumber} = require("ethers");
 describe("Testing functionality", function () {
 
     async function deploySchnorrSignature() {
-        const SchnorrSignature = await ethers.getContractFactory("SchnorrSignatureContract");
+        const SchnorrSignature = await ethers.getContractFactory("SchnorrSignatureTest");
         const schnorrSignature = await SchnorrSignature.deploy();
         await schnorrSignature.deployed();
 

@@ -143,7 +143,7 @@ impl FromStrCustom for CurveBaseField {
 impl SolidityRepresentable for GroupProjective<curve::g1::Parameters> {
     fn solidity_repr(&self) -> String {
         let affine = self.into_affine();
-        format!("[{} , {}]", affine.x.solidity_repr(), affine.y.solidity_repr())
+        format!("[{},{}]", affine.x.solidity_repr(), affine.y.solidity_repr())
     }
 }
 impl JavaScriptRepresentable for GroupProjective<curve::g1::Parameters> {
@@ -185,7 +185,7 @@ impl FromStrCustom for GroupProjective<curve::g1::Parameters> {
 impl SolidityRepresentable for GroupProjective<curve::g2::Parameters> {
     fn solidity_repr(&self) -> String {
         let affine = self.into_affine();
-        format!("[[{} , {}], [{} , {}]]", affine.x.c1.solidity_repr(), affine.x.c0.solidity_repr(), affine.y.c1.solidity_repr(), affine.y.c0.solidity_repr())
+        format!("[{},{},{},{}]", affine.x.c1.solidity_repr(), affine.x.c0.solidity_repr(), affine.y.c1.solidity_repr(), affine.y.c0.solidity_repr())
     }
 }
 impl JavaScriptRepresentable for GroupProjective<curve::g2::Parameters> {
@@ -238,7 +238,7 @@ impl FromStrCustom for GroupProjective<curve::g2::Parameters> {
 
 impl SolidityRepresentable for SchnorrSignature {
     fn solidity_repr(&self) -> String {
-        format!("[{} , {}]", self.s.solidity_repr(), self.e.solidity_repr())
+        format!("[{},{}]", self.s.solidity_repr(), self.e.solidity_repr())
     }
 }
 impl JavaScriptRepresentable for SchnorrSignature {
