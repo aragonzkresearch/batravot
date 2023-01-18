@@ -1,7 +1,7 @@
 use ark_ff::BigInteger256;
 use colored::Colorize;
 use batravot_lib::ElectionSpecifiers;
-use batravot_lib::representation::{SolidityRepresentable, JavaScriptRepresentable};
+use batravot_lib::representation::{SolidityRepresentable};
 use crate::common::get_election_id;
 
 /// This function verifies that the election specifiers are correct by comparing them to the ones in the blockchain

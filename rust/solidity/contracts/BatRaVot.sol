@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 // Import the BN254 library
 import "./BN254.sol";
-import "./SchnorrSignature.sol";
+import "./SchnorrKnowledgeProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BatRaVot {
@@ -73,6 +73,7 @@ contract BatRaVot {
      * Register a voter public key [G1] in the census
      * To make sure this is a valid voter, we make the voter submit a schnorr signature
      *
+     * rawProof - first element is the X coordinate of `t`, second is Y coordinate of `t`, third is value `s`
      *
      * Note that this can be called by anyone once the function was initially called by
      * the owner of the public key. If someone else calls it, they subscribe to the voter
@@ -80,16 +81,18 @@ contract BatRaVot {
      * Without them needing to actively vote. This is a feature, not a bug.
      * To deregister from the subscription, the voter just needs to register a new public key.
      */
-    function registerVoter(uint256[2] memory pubKeyRaw, uint256[2] memory signRaw) external {
+    function registerVoter(uint256[2] memory pubKeyRaw, uint256[3] memory rawProof) external {
 
         // Convert the raw public key into a BN254.G1 point
         BN254.G1 memory pubKey = BN254.G1(pubKeyRaw[0], pubKeyRaw[1]);
-        // Convert the raw signature into a SchnorrSignature.Sign
-        SchnorrSignature.Sign memory sign = SchnorrSignature.Sign(signRaw[0], signRaw[1]);
+        // Convert the raw key proof into a real key proof
+        SchnorrKnowledgeProof.Proof memory keyProof = SchnorrKnowledgeProof.Proof(BN254.G1(rawProof[0], rawProof[1]), rawProof[2]);
 
         // Check that the pubKey has a corresponding private key
-        require(SchnorrSignature.verify(pubKey, sign), "Invalid signature");
+        require(SchnorrKnowledgeProof.verify(pubKey, keyProof), "Invalid Key Proof");
         // This is just a filter to make sure that the voters have token balances
+        // THIS IS CUSTOM LOGIC AND CAN BE REPLACED.
+        // NOTE: THIS DOES NOT ENSURE THAT ALL VOTER WHEN VOTING HAVE A TOKEN, ONLY FILTERS WHO CAN REGISTER
         require(votingToken.balanceOf(msg.sender) > 0, "You must have voting tokens to register");
 
         // Add the voter to the list of voters
@@ -144,6 +147,12 @@ contract BatRaVot {
     }
 
 
+    /**
+     * Function that allows to submit votes for a running election. The function needs a list of addresses who voted
+     * how and the proof that the votes are valid. This function can be called by anyone, even the voter themselves.
+     * The function requires at least one vote to be submitted.
+     * TODO - consider providing alternative function that instead of addresses takes indexes, to have alternatives
+     */
     function submitVotesWithProof(uint256 electionId, address[] calldata votersFor, address[] calldata votersAgainst, uint256[2] memory electionProofRaw) public {
         // Convert the raw election proof into a BN254.G1 point
         BN254.G1 memory electionProof = BN254.G1(electionProofRaw[0], electionProofRaw[1]);
@@ -247,6 +256,7 @@ contract BatRaVot {
         // As this function is called only once, we can not have a double vote attack
         // TODO - make sure that the this function must be called at least one block after the last vote is submitted
         // TODO - this will prevent the flash loan attack. One can also specify a trusted party to call this function
+        // TODO - consider changing the loop to something else else this is not gas efficient
         for (uint256 i = 0; i < voters.length; i++) {
             address voterId = voters[i];
 

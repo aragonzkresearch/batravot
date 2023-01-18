@@ -13,8 +13,8 @@ pub(crate) fn proof_check_ballots(election_id: u64, ballots: Vec<Ballot>) -> Vec
     let checked_ballots : Vec<Ballot> = ballots.into_iter().enumerate().filter(|(i, ballot)| {
         // Check if the vote proof is valid
         let proof_is_correct = match ballot.vote {
-            Vote::For => verifier::validate_election_proof(&vec!(ballot.voter_public_key), &Vec::new(), &ballot.vote_proof, &election_specifiers),
-            Vote::Against => verifier::validate_election_proof(&Vec::new(), &vec!(ballot.voter_public_key), &ballot.vote_proof, &election_specifiers),
+            Vote::For => verifier::validate_election_proof(&vec!(&ballot.voter_public_key), &Vec::new(), &ballot.vote_proof, &election_specifiers),
+            Vote::Against => verifier::validate_election_proof(&Vec::new(), &vec!(&ballot.voter_public_key), &ballot.vote_proof, &election_specifiers),
         };
 
         // In case the vote proof is not valid, ask the user what to do with the ballot

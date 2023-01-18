@@ -4,7 +4,7 @@ use ark_ff::{BigInteger, BigInteger256, PrimeField};
 use web3::types::Address;
 
 use crate::el_curve::{curve, CurveBaseField, CurveExtensionField, ScalarField};
-use crate::{ElectionSpecifiers, G1, G2, SchnorrSignature};
+use crate::{ElectionSpecifiers, G1, G2, SchnorrKnowledgeProof};
 
 /// This trait is used to convert a complex type to a type that Solidity can understand
 pub trait SolidityRepresentable {
@@ -14,6 +14,7 @@ pub trait SolidityRepresentable {
 pub trait JavaScriptRepresentable {
     fn javascript_repr(&self) -> String;
 }
+
 /// This trait is the same as the `FromStr` trait, but it returns a `Result`
 /// The reason for creating this trait is that the `FromStr` could not be implemented for the external types
 pub trait FromStrCustom {
@@ -236,14 +237,16 @@ impl FromStrCustom for GroupProjective<curve::g2::Parameters> {
     }
 }
 
-impl SolidityRepresentable for SchnorrSignature {
+impl SolidityRepresentable for SchnorrKnowledgeProof{
     fn solidity_repr(&self) -> String {
-        format!("[{},{}]", self.s.solidity_repr(), self.e.solidity_repr())
+        format!("[{},{}]", self.t.solidity_repr(), self.s.solidity_repr())
     }
 }
-impl JavaScriptRepresentable for SchnorrSignature {
+impl JavaScriptRepresentable for SchnorrKnowledgeProof {
     fn javascript_repr(&self) -> String {
-        format!("[{} , {}]", self.s.javascript_repr(), self.e.javascript_repr())
+        // Note that for javascript we print all in one without separation using brackets
+        let t_affine = self.t.into_affine();
+        format!("[{}, {}, {}]", t_affine.x.javascript_repr(), t_affine.y.javascript_repr(), self.s.javascript_repr())
     }
 }
 
@@ -267,7 +270,7 @@ impl SolidityRepresentable for Address {
 }
 impl JavaScriptRepresentable for Address {
     fn javascript_repr(&self) -> String {
-        format!("BigNumber.from(\"0x{}\")", hex::encode(self.0))
+        format!("\"0x{}\"", hex::encode(self.0))
     }
 }
 impl FromStrCustom for Address {
@@ -285,14 +288,13 @@ impl FromStrCustom for Address {
 
 #[cfg(test)]
 mod test_representations {
-    use ark_std::rand::SeedableRng;
+    use ark_ff::BigInteger256;
     use ark_std::UniformRand;
-    use rand_chacha::ChaChaRng;
     use super::*;
 
     #[test]
     fn test_big_integer_256_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let big_int = BigInteger256::rand(rng);
         let big_int_str = big_int.solidity_repr();
         let big_int_parsed = BigInteger256::from_str_c(&big_int_str).unwrap();
@@ -309,7 +311,7 @@ mod test_representations {
 
     #[test]
     fn test_base_field_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let base_field = CurveBaseField::rand(rng);
         let base_field_str = base_field.solidity_repr();
         let base_field_parsed = CurveBaseField::from_str_c(&base_field_str).unwrap();
@@ -326,7 +328,7 @@ mod test_representations {
 
     #[test]
     fn test_scalar_field_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let scalar_field = ScalarField::rand(rng);
         let scalar_field_str = scalar_field.solidity_repr();
         let scalar_field_parsed = ScalarField::from_str_c(&scalar_field_str).unwrap();
@@ -335,7 +337,7 @@ mod test_representations {
 
     #[test]
     fn test_g1_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let g1 = G1::rand(rng);
         let g1_str = g1.solidity_repr();
         // Take a substring of the string to remove the [ and ] characters
@@ -355,12 +357,12 @@ mod test_representations {
     fn generates_a_correct_bn254_generator_representation() {
         let g1 = G1::prime_subgroup_generator();
         let g1_str = g1.solidity_repr();
-        assert_eq!(g1_str, "[0x0000000000000000000000000000000000000000000000000000000000000001 , 0x0000000000000000000000000000000000000000000000000000000000000002]");
+        assert_eq!(g1_str, "[0x0000000000000000000000000000000000000000000000000000000000000001,0x0000000000000000000000000000000000000000000000000000000000000002]");
     }
 
     #[test]
     fn test_g2_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let g2 = G2::rand(rng);
         let g2_str = g2.solidity_repr();
         // Take a substring of the string to remove the [ and ] characters
@@ -373,7 +375,7 @@ mod test_representations {
 
     #[test]
     fn test_address_representations() {
-        let rng = &mut ChaChaRng::seed_from_u64(1231275789u64);
+        let rng = &mut ark_std::test_rng();
         let address = Address::rand(rng);
         let address_str = address.solidity_repr();
         let address_parsed = Address::from_str_c(&address_str).unwrap();

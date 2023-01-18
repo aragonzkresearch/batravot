@@ -87,22 +87,22 @@ pub mod verifier {
     /// no_vote_keys: The public keys of the voters who voted no
     /// proof: The proof that the votes are valid
     /// specifiers: The election specifiers
-    pub fn validate_election_proof(for_vote_keys: &Vec<G1>, against_vote_keys: &Vec<G1>, proof: &G1, specifiers: &election_specifiers::ElectionSpecifiers) -> bool {
+    pub fn validate_election_proof(for_vote_keys: &Vec<&G1>, against_vote_keys: &Vec<&G1>, proof: &G1, specifiers: &election_specifiers::ElectionSpecifiers) -> bool {
         // Calculate the sum of all the vote proofs for those who voted yes and no
-        let for_vote_sum = for_vote_keys.iter()
-            .fold(G1::zero(), |acc, x| acc + x);
+        let for_voter_sum = for_vote_keys.iter()
+            .fold(G1::zero(), |acc, x| acc + *x);
 
-        let against_vote_sum = against_vote_keys.iter()
-            .fold(G1::zero(), |acc, x| acc + x);
+        let against_voter_sum = against_vote_keys.iter()
+            .fold(G1::zero(), |acc, x| acc + *x);
 
         // Compute the proof pairing
         let lhs = Curve::pairing(proof.clone(), G2::prime_subgroup_generator());
         // Compute the product of pairing of the sum of keys that voted yes and the yes specifier
         // And the pairing of the sum of keys that voted no and the no specifier
         let rhs =
-            Curve::pairing(for_vote_sum, specifiers.forr.1.clone())
+            Curve::pairing(for_voter_sum, specifiers.forr.1.clone())
                 *
-                (Curve::pairing(against_vote_sum, specifiers.against.1.clone()));
+                (Curve::pairing(against_voter_sum, specifiers.against.1.clone()));
 
         // If the election proof is valid, the pairing of the valid votes and the generator should be equal to the product of the pairings of the sum of keys that voted yes and the yes specifier
         lhs == rhs

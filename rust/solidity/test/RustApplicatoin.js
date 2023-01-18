@@ -45,7 +45,7 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
     }
 
     async function registerVoters(batravot, token, voters) {
-        for (let [tokens, ethPrk, ethAddress, pubKey, signature] of voters) {
+        for (let [tokens, ethPrk, ethAddress, pubKey, keyProof] of voters) {
 
             const account = new ethers.Wallet(ethPrk, ethers.provider);
             console.log("Registering voter: ", ethAddress);
@@ -64,7 +64,7 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
 
 
             // Now, we can register the voter, we need to send the registration transaction from the voter's address
-            const registerVoterTx = await batravot.connect(account).registerVoter(pubKey, signature);
+            const registerVoterTx = await batravot.connect(account).registerVoter(pubKey, keyProof);
             await registerVoterTx.wait();
             console.log("Voter registered successfully!")
         }
@@ -87,8 +87,10 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
         await startNewElection(batravot);
 
         // Add keys to the election census
-        let voting_public_key =  [BigNumber.from('0x285fe95a59770f5b8d47bf529d037a3746a2d039b57f5447c9920cb2648515c9'),BigNumber.from('0x2f8a64b393e9cb261d45b79effcd4a6b7eb46dae6deb3697cf8ab72ce347d302')]
-        let voting_key_proof = [BigNumber.from('0x043484a69866381ee497a85414638a851d74e282643a6d93fa36c7dfb6a92f92'),BigNumber.from('0x2d8ce6363a3b15d35eedc4136fbbc6471394e755f72dbd02b4cd32e71a4d27a2')]
+        // Voting Private key is: 0x71e936491e99cb4e04c963017491f1601d20f352b4f7f450bb7a637dc76fda71
+        let voting_public_key =   [BigNumber.from("0x2abefcd6a91b7da4ed906ba7ad0a73d1a98bc63f216dcd88d1d37d8c7c3f2f5a") , BigNumber.from("0x071304e3246341f4d744ff862435e85925022f56736d0611bb5b9f2420a443b7")]
+        let voting_key_proof = [BigNumber.from("0x16d5e1ec52142853b0f65f14d99b106cf476ff2c9aa3b022ca9e0840e72a7ccb") , BigNumber.from("0x1c14a099adfdd4a092b3fdd0e30048ade43ebd2c078225ce989ea8b269bbfaee"), BigNumber.from("0x28aeb56038144b30ab36147cd2deb495a54bcbcbe93e4af4e952e889e8d15bbf") ]
+
         let eth_prk = '0xb10da48cea4c09676b8e0efcd806941465060736032bb898420d0863dca72538';
         let eth_address =  '0xf37d1d2f8b354ec82d821dd1d453b21514b236e6';
 
@@ -99,7 +101,7 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
 
         // Submit a proof for the election vote
         let [proof] = [
-            [BigNumber.from('0x22e16c96b958ef03091140b7ea5418be6e97a175f811c5646e418d1993ba019d'),BigNumber.from('0x0421bc1aa3f783fdf0b7543878ca0c4c631d720b0add35ff6378e22c731b0a3c')]
+            [BigNumber.from("0x1702be75e57ee4c5e0535f25158ae476964bc39867be005b54afaa49c20ad624") , BigNumber.from("0x1fa951aa83759ca771283b602d0698209fb1a1f686e33cc488c65d2c67f0d4e1")]
         ];
 
         // Who voted for whom
@@ -125,8 +127,10 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
         await startNewElection(batravot);
 
         // Add keys to the election census
-        let voting_public_key =  [BigNumber.from('0x285fe95a59770f5b8d47bf529d037a3746a2d039b57f5447c9920cb2648515c9'),BigNumber.from('0x2f8a64b393e9cb261d45b79effcd4a6b7eb46dae6deb3697cf8ab72ce347d302')]
-        let voting_key_proof = [BigNumber.from('0x043484a69866381ee497a85414638a851d74e282643a6d93fa36c7dfb6a92f92'),BigNumber.from('0x2d8ce6363a3b15d35eedc4136fbbc6471394e755f72dbd02b4cd32e71a4d27a2')]
+        // Voting Private key is: 0x71e936491e99cb4e04c963017491f1601d20f352b4f7f450bb7a637dc76fda71
+        let voting_public_key =   [BigNumber.from("0x2abefcd6a91b7da4ed906ba7ad0a73d1a98bc63f216dcd88d1d37d8c7c3f2f5a") , BigNumber.from("0x071304e3246341f4d744ff862435e85925022f56736d0611bb5b9f2420a443b7")]
+        let voting_key_proof = [BigNumber.from("0x16d5e1ec52142853b0f65f14d99b106cf476ff2c9aa3b022ca9e0840e72a7ccb") , BigNumber.from("0x1c14a099adfdd4a092b3fdd0e30048ade43ebd2c078225ce989ea8b269bbfaee"), BigNumber.from("0x28aeb56038144b30ab36147cd2deb495a54bcbcbe93e4af4e952e889e8d15bbf") ]
+
         let eth_prk = '0xb10da48cea4c09676b8e0efcd806941465060736032bb898420d0863dca72538';
         let eth_address =  '0xf37d1d2f8b354ec82d821dd1d453b21514b236e6';
 
@@ -137,7 +141,7 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
 
         // Submit a proof for the election vote
         let [proof] = [
-            [BigNumber.from('0x18dac067df75105fd4305d5069768150cb6bd7a79a5f1a29343611abda08123f'),BigNumber.from('0x0526459eac249dabfda0cc03f871dc59273e87af055153221c5ad66e4b989b98')]
+            [BigNumber.from("0x2966d3d0e01ffdd767a6c83276050ccf674b4c54911f8d4cd6377b65bb930e24") , BigNumber.from("0x1727158d6719754419ff42ce8650d180890bd2deec5f4fe275a452198510e9a7")]
         ];
 
         // Who voted for whom
@@ -165,11 +169,23 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
 
         // Add key to the election census
         let voters = [
-            [40, '0xb10da48cea4c09676b8e0efcd806941465060736032bb898420d0863dca72538', '0xf37d1d2f8b354ec82d821dd1d453b21514b236e6', [BigNumber.from('0x1c47399c059754fed65f54a5b47132114094226733152e6fd55ebcf5fb73dda7'),BigNumber.from('0x05d47e85f04e49debd21125f27ee73d630d7e59fdbc3394d5dcc989dc745f837')], [BigNumber.from('0x02dc82fead6a313f6be7a65130a92cfabc2e988974e54c6ac26501ca974e8901'),BigNumber.from('0x0ffa1afd8ffe8184016692189efb39292f0df30baefa3a10de41810be5f931ec')]],
+            // 0x2260b8a4b275f1094cbee5cbd7ed8d654bc201b2ae75958153b1e3cbc9bc2768
+            [40, '0xb10da48cea4c09676b8e0efcd806941465060736032bb898420d0863dca72538', '0xf37d1d2f8b354ec82d821dd1d453b21514b236e6',
+                [BigNumber.from("0x065e09b7dff544aa70309dc63070bd71008fd2b68af2273309142df16e5b39f6") , BigNumber.from("0x2c574987e62617b41ac9611b6b0c8b3eaeb2fcf42b5cb1c2dd4c35be768f0d6b")],
+                [BigNumber.from("0x0d3d6f9af27a8cd5fb8c31d587d464183096033d82f8042ea53e9dd8638633f6") , BigNumber.from("0x2a4aaeeebefce0eab140f7e9a0080b25d93800d38eee1918e37ae7e7a6ec626d") , BigNumber.from("0x09de19cc24fc074d8648fb44bd2c69c9907ad785c0a90ecb9a6acdd4b195afe2")]
+            ],
 
-            [25, '0x5820e2e9368deab5178aff7ee0df09768e48c5b5423f14271360b10a1ba7f1df', '0x3bf393f3c02982e2f5a946ae62741166ebc05a1f', [BigNumber.from('0x04689c98cc64e11ae4b9e3de656e7b53a0f3b198edd2a26f17db8335298d512d'),BigNumber.from('0x253663c67e75f93f0ba27b0512ce6996279091adb5d0567069d020e0ec28bf8c')], [BigNumber.from('0x20f5fd865be1dd859fe5c079d3e30fd043e9ddcd353d60f8a5a1151053b21422'),BigNumber.from('0x0f0731f94b7c5f49b8a5f6b15dcb726266b1db2aa1c02d074438efae93477589')]],
+            // 0xff1a88c8b747603e8d92f68f69125610a69e07930fb442b0a58d79d1e10bcddc
+            [25, '0x5820e2e9368deab5178aff7ee0df09768e48c5b5423f14271360b10a1ba7f1df', '0x3bf393f3c02982e2f5a946ae62741166ebc05a1f',
+                [BigNumber.from("0x0a86ae32732efd3f551e8bd717a17a47584cdc71bf0f9b6b665fa0a78b8f5a16") , BigNumber.from("0x02498af65a9648fcbec94fb2c0324b19913447a9f86642539d2ac5e2a424e6ec")],
+                [BigNumber.from("0x3003efecba3495f93516ef8d336500527c04c2f472265c2c29430f2f972891eb") , BigNumber.from("0x12d29f76fa9f74a0b13b0b7fbcbbda48de4fded6c6b0307bf544679450f608ac"), BigNumber.from("0x0118f428091a69b08cc24b7fe248b4ab8e4afa9fd1c70e42b765642d7b208f64")]
+            ],
 
-            [125, '0x238edbd5e52d7619a1e1e9f90b1a9043e2fba672bfef15741d679173da11bd47', '0x018683084de5c7d8203bb193b4703f3d26057f69', [BigNumber.from('0x0bd53064695b9cfe40d20f626ec328f911df8c1171fb5e1d8c3536fdf31f24d9'),BigNumber.from('0x17878767458083509e4b26ce60adf8f160d44c2c2b8e164593d231bb1ffc2513')], [BigNumber.from('0x024df11d2b21b5faeb486fe10b25fef61772a357c89fb8001220fac67f2527f3'),BigNumber.from('0x1afdb4f42249ab4dbc77cc82a269fa353d5edece6e1679c43438d7cc766ab438')]]
+            // 0x6dc1d83cc050ac57db474305229b4f0e0a9e625d48c8f9c55078914a13d107f8
+            [125, '0x238edbd5e52d7619a1e1e9f90b1a9043e2fba672bfef15741d679173da11bd47', '0x018683084de5c7d8203bb193b4703f3d26057f69',
+                [BigNumber.from("0x242952d154c7930b9e7915a2e949f81ceea6f25f6401d090c387d800c22ead70") , BigNumber.from("0x2cbe80463f1a57996b0568ac185812657a4740d3580864a5c19354b6b65a647c")],
+                [BigNumber.from("0x013821cc789c3d39cced2c175ab557d44fa406935187b4d3d9753557abf30976") , BigNumber.from("0x2a2b5739f365668e0b2d400dffe010e002020f4dd37b9662bbe6b5e10c08eb6e"), BigNumber.from("0x0d761714df2a18ce0b9b1a63940a527a20630bc297ad8295f55b36caba4f743c")]
+            ]
         ];
 
         await registerVoters(batravot, token, voters);
@@ -183,7 +199,7 @@ describe("Testing Rust Application to correctly integrate with the BatRaVot Smar
             ['0x3bf393f3c02982e2f5a946ae62741166ebc05a1f']
 
         let [proof] = [
-            [BigNumber.from('0x224c6d69bd3d7a1a9c1ac7541cfebf3dcfab4bc7c79b6a2445edf5fe0f556c8d'),BigNumber.from('0x131414c69d0b495f191c66a02b8afa7138ddab66a71cc6d71eb41018fb70ba16')]
+            [BigNumber.from("0x066afbb5f86b55959fffb37d18084b7a632e08e581080b1ba607b708596053fc") , BigNumber.from("0x184b8a685bdcc2034aae319816dda27caabea2940810465d4cdbbec4cc0e40a7")]
         ];
 
         await submitElectionProof(batravot, for_voters, against_voters, proof);
