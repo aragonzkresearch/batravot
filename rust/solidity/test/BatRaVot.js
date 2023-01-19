@@ -10,7 +10,6 @@ describe("Testing BatRaVot smart contract", function () {
     const token = await Token.deploy();
 
     await token.deployed();
-    console.log("Token Address:", token.address);
     return token;
   }
 
@@ -23,7 +22,6 @@ describe("Testing BatRaVot smart contract", function () {
     const batravot = await BatRaVot.deploy(token.address);
 
     await batravot.deployed();
-    console.log("Election Handler deployed to:", batravot.address);
     return [batravot, token];
   }
 
@@ -37,10 +35,8 @@ describe("Testing BatRaVot smart contract", function () {
 
     const createElectionTx = await batravot.createElection("Test Election", specifier_yes_g1, specifier_yes_g2, specifier_no_g1, specifier_no_g2);
     await createElectionTx.wait();
-    console.log("New election created successfully!")
-    
+
     let election = await batravot.elections(electionId);
-    console.log("Current election status: ", election.state)
     return election.state;
   }
 
@@ -48,7 +44,6 @@ describe("Testing BatRaVot smart contract", function () {
     for (let [tokens, ethPrk, ethAddress, pubKey, proof] of voters) {
 
       const account = new ethers.Wallet(ethPrk, ethers.provider);
-      console.log("Registering voter: ", ethAddress);
       // First, we need to send some tokens to the voter
       const transferTx = await token.mint(ethAddress, tokens);
       await transferTx.wait();
@@ -60,35 +55,35 @@ describe("Testing BatRaVot smart contract", function () {
       }
       const [owner] = await ethers.getSigners();
       await owner.sendTransaction(tx);
-      console.log("Tokens and Ether sent to voter successfully!")
 
 
       // Now, we can register the voter, we need to send the registration transaction from the voter's address
       const registerVoterTx = await batravot.connect(account).registerVoter(pubKey, proof);
       await registerVoterTx.wait();
-      console.log("Voter registered successfully!")
     }
   }
 
   async function submitElectionProof(batravot, for_voters, against_voters, proof, electionId = BigNumber.from(0)) {
     const submitVoteWithProofTx = await batravot.submitVotesWithProof(electionId, for_voters, against_voters, proof);
     await submitVoteWithProofTx.wait();
-    console.log("Submitted a vote proof for the election.")
   }
 
   async function closeElectionAndGetResult(batravot, electionId = BigNumber.from(0)) {
     const closeElectionTx = await batravot.closeElection(electionId);
     await closeElectionTx.wait();
+
     return (await batravot.elections(electionId));
   }
 
   it("Can deploy Token", async function () {
     const token = await deployDummyToken();
+    console.log("Token Address:", token.address);
     expect(token.address).to.not.equal("");
   });
 
   it("Can deploy BatRaVot", async function () {
     const [batravot] = await deployElectionContract();
+    console.log("BatRaVot deployed to:", batravot.address);
     expect(batravot.address).to.not.equal("");
   });
 
@@ -100,12 +95,15 @@ describe("Testing BatRaVot smart contract", function () {
   it("One correct vote `For`", async function () {
     const [batravot, token] = await deployElectionContract();
     await startNewElection(batravot);
+    console.log("New election created successfully!")
+
 
     // Add keys to the election census
     let voters = [
       [5, BigNumber.from("0x5951647af6c9301fd81debb444cfa6abd8af4eb953f0286dc5dd583def74c8af"), "0xcc3e95add74484967fafab4c96b14577166cde37", [BigNumber.from("0x2c73fd312a9c3b5c2ab57c5fc12b4a1ad08b245a86ecb1744bb672da676a9b23") , BigNumber.from("0x0a9f46d4388aa89ec81ef2bfc538996d9d2c0d85d0ed6a56e4655b2ba0443de7")], [BigNumber.from("0x2c3bd68ae95c86721a2e9d01dcaf2212a297325c77594d56d8d9ba0759a56d8c"), BigNumber.from("0x1536cdbab2a7b341b7bcf3ce1778aaa2d2d6caada4cdfed993cf43afd7fc492b"), BigNumber.from("0x2a9ae02e98a77c1da99a0efaa1bd4e061f2f7a20a1a8d42a9b752a9bff31c632")]]
     ];
     await registerVoters(batravot, token, voters);
+    console.log("Voter registered successfully!")
 
     // Submit a proof for the election vote
     let [proof] = [

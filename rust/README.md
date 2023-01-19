@@ -1,30 +1,12 @@
-# BatRaVot Implementation for Ethereum 
+# Rust Implementation
 
-This is a Rust implementation of the BatRaVot voting protocol. It is designed to support low gas const voting based on the amount of ERC20 tokens a user holds.
-It is also easy to extend to support ERC721 tokens as well as alternative voting methods.
+The Rust implementation consists of the following components:
 
-You can read more about the protocol in the [article](https://research.aragon.org/snarv.html).
+1. The `batravot-lib` library, which contains the core logic of the protocol. It is used by both the `batravot-batcher` and `batravot-voter` crates. It additionally contains the `main.rs` file, where you can run election simulations, much like in the `sage` version.
+2. The `batravot-voter` crate, which is used to generate vote ballots, key proofs, as well as specifiers. This is a CLI application to do all the tasks a voter might need. We will show how to execute different functions in the usage section. The protocol logic is implemented in the `batravot-lib` crate and the crate itself manages user inputs.
+3. The `batravot-batcher` crate, which is used to generate batch proofs. This is a CLI application for the batcher. Batcher can input data in console or in file. Please refer to the usage section for details. The protocol logic is implemented in the `batravot-lib` crate and the crate itself manages user inputs.
+4. The `solidity` folder, which contains the Solidity contract that is used to verify the batch proofs and tally the votes. There are also some tests for the contract.
 
-## Project Status
-
-This is a PoC implementation of the protocol. It is not production ready and should not be used in production.
-
-## Description
-
-The protocol is designed to make the voting process cheaper on the Ethereum chain. It achieves this by batching multiple votes together off-chain into a single transaction. 
-This is done by generating a vote ballot for each voter, that contains a vote proof, and then combining all vote proofs into a single proof, that is then send to the Ethereum.
-The Ethereum contract then verifies the proof and tallies the votes.
-
-There are three types of participants in the protocol:
-1. The voter, who is the person who wants to vote. They generate a vote ballot, and send it to the Batcher or directly to the Verifier (in our case Ethereum contract).
-2. The Batcher, the person who batches the vote ballots together. They generate a batch proof, and send it to the Verifier (in our case Ethereum contract).
-3. The Verifier, the person who verifies the batch proof and tallies the votes. In our case, this is the Ethereum contract.
-
-## Components
-
-The code consists of two parts:
-1. The Rust backend, which is used to generate the vote ballots and batch proofs. 
-2. The Solidity contract, which is used to verify the batch proofs and tally the votes. 
 
 ## Usage
 
@@ -34,7 +16,7 @@ The code consists of two parts:
 
 ### [Optional] Deploy the contract
 
-You can use the smart contract deployed to the Sepolia testnet [here](https://sepolia.etherscan.io/address/0x6aB39dE24B1D60813320c28D9B5bf1688195d088#writeContract), or deploy your own.
+You can use the smart contract deployed to the Sepolia testnet [here](https://sepolia.etherscan.io/address/0x306d7b4BFcb45b9690a239Cd36084C2e8EE89776#writeContract), or deploy your own.
 
 You can deploy your own contract by running the following command:
 ```
@@ -44,11 +26,11 @@ You can deploy your own contract by running the following command:
 where `<network>` is the network you want to deploy to. You can find and change the list of networks in the `solidity/hardhat.config.js` file.
 Make sure to also provide the environment variables for the Ethereum `PRIVATE_KEY` and the network `API_URL` you want to deploy to.
 
-**Note:** this script will deploy both the batravot contract and the token contracts. If you want to deploy only the batravot contract and use an existing token, you will need to change the `deploy.js` file.
+**Note:** this script will deploy both the batravot contract and the token contracts. If you want to deploy only the batravot contract and use an existing token, please use the **untested** `deploy_custom_token.js` script in the simular way.
 
 ### Register as a voter
 
-Before you can start voting in the protocol, you need to register as a voter. This will require you to create a special Voting Private Key and corresponding Voting Public Key, 
+Before you can start voting in the protocol, you need to register as a voter. This will require you to create a special Voting Private Key and corresponding Voting Public Key,
 as well as the proof that you are the owner of the Voting Public Key. You can do this by running the following command:
 
 ```
@@ -58,6 +40,8 @@ Follow the prompts to generate the Voting Private Key, Voting Public Key, and th
 
 You will then need to call the `registerVoter` function in the contract with the Voting Public Key and the proof. You can use Etherscan to do this.
 The address you will call the function from will then be associated with the Voting Public Key, and will be used to estimate how many voting power you have.
+
+**Note:** to call the `registerVoter` function, you will need to have some voting tokens in your account. You can get some tokens by calling the `mint` function in the token contract. If you are using a pre-deployed version, you can mint some tokens [here](https://sepolia.etherscan.io/address/0xa0CB59766e70D00678701f7D7E14097954e679b8#writeContract). 
 
 
 Alternatively, you can also delegate your voting power to another address. This will allow you to vote on behalf of the other address. The key feature is that
@@ -114,7 +98,7 @@ where `<file>` is the path to the file containing the vote ballots. The file sho
   <voting public key>|<vote>|<vote proof>|<voter ethereum address>
 ```
 
-where `<voting public key>` is the voting public key of the voter, `<vote proof>` is the vote proof generated by the voter, 
+where `<voting public key>` is the voting public key of the voter, `<vote proof>` is the vote proof generated by the voter,
 `<vote>` is the vote the voter has cast, with values either `for` (`+`) or `against` (`-`), and `<voter ethereum address>` is the Ethereum address of the voter.
 
 The command will generate a batch proof, which you can then send to the Verifier (in our case the contract). To send the batch proof to the contract, you can use Etherscan to call the `submitVotesWithProof` function in the contract.
@@ -130,4 +114,3 @@ The contract also stores information about how each Voter Public Key voted, so i
 Once the election is over, you can close it by calling the `closeElection` function in the contract. This will calculate the result of the election.
 The current mechanism is set to evaluate the voting power based on the amount of token someone has when the `closeElection` function is called.
 However, as no other logic of the protocol depends on the voting power, it can be changed to any other mechanism.
-
