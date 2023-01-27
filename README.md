@@ -1,6 +1,6 @@
 # BatRaVot Implementation for Ethereum 
 
-This is a Rust implementation of the BatRaVot voting protocol. It is designed to support low gas const voting based on the amount of ERC20 tokens a user holds.
+This is a Rust implementation of the BatRaVot voting protocol. It is designed to support low gas costs voting based on the amount of ERC20 tokens a user holds.
 It is also easy to extend to support ERC721 tokens as well as alternative voting methods.
 
 You can read more about the protocol in the [article](https://research.aragon.org/snarv.html).
