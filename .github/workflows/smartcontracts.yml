@@ -1,0 +1,43 @@
+name: SmartContracts
+on: [ push, pull_request ]
+
+env:
+  PRIVATE_KEY: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+  ETHERSCAN_API_KEY: 1234567890
+  SEPOLIA_API_URL: https://api.sepolia.com
+
+jobs:
+  test-smart-contracts:
+    name: Test Smart Contracts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 16.x ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: |
+          cd rust/solidity
+          npm install
+      - name: Run Smart Contract tests
+        run: |
+          cd rust/solidity
+          npx hardhat test
+  test-rust:
+    name: Test Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Run Rust tests
+        run: |
+          cd rust
+          cargo test --all
