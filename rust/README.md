@@ -7,6 +7,21 @@ The Rust implementation consists of the following components:
 3. The `batravot-batcher` crate, which is used to generate batch proofs. This is a CLI application for the batcher. Batcher can input data in console or in file. Please refer to the usage section for details. The protocol logic is implemented in the `batravot-lib` crate and the crate itself manages user inputs.
 4. The `solidity` folder, which contains the Solidity contract that is used to verify the batch proofs and tally the votes. There are also some tests for the contract.
 
+## Difference of Multisig from Referendum Token Voting
+
+The difference between _Multisig_ and _Referendum Token Voting_ is that _Multisig_ considers a proposal to be passed as soon as it sees a predefined amount of X voter **For**, while in _Referendum Token Voting_, the proposal will pass if the total amount of **cast** **For** votes is for greater than the total amount of **Against** votes. 
+This implies that for _Multisig_ to pass a proposal is enough to see a proof of X **For** votes, while in _Referendum Token Voting_ the voting process must continue until the voting period is over or all the tokens are cast, and we care about both **For** and **Against** votes.
+
+Because of that, _Multisig_ can be seen as a special case of _Referendum Token Voting_, with a range of simplifications:
+
+1. We only care about **For** votes, so we can ignore **Against** and **Abstain** (**Not Voted**) votes.
+2. We can terminate the voting process as soon as we see a proof of X **For** votes, as we don't care about the rest of the votes.
+3. We do not consider weight of the votes, as we only care about the number of votes.
+4. We do not consider the election results, as we only care if the proposal passed or not based on the number of **For** votes.
+
+Considering how much simpler and more efficient the _Multisig_ is, we decided to implement it as a separate type of voting, as well as benchmark it to the industry standard Gnosis Multisig implementation.
+
+The rest of the document will stay largely the same as with the _Referendum Token Voting_, as same Rust code can be used and only the Solidity contract changes.
 
 ## Usage
 
