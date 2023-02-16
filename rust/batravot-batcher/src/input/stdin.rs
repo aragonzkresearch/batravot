@@ -106,25 +106,11 @@ fn read_public_key() -> Result<G1, String>{
 /// Vote is represented by a `+` or `-` sign or by `again` or `for` words (case insensitive)
 fn read_vote() -> Result<Vote, String>{
 
-    println!("\nEnter the vote of the ballot:");
-    println!("[+] For");
-    println!("[-] against");
-    loop {
-        // Read the next line from the standard input and try to parse it as a vote
-        let mut vote_str = String::new();
-        io::stdin().read_line(&mut vote_str)
-            .map_err(|err| format!("Error reading the Vote: {}", err))?;
+    println!("In MultiSig mode, only votes `For [+]` are accepted.");
+    println!("Treating this ballot as a `For [+]` vote. To do a `Against [-]` vote, do not aggregate this ballot.");
 
-        let vote = match Vote::from_str(&vote_str.trim()) {
-            Ok(vote) => vote,
-            Err(err) => {
-                eprintln!("{}", format!("There was an error parsing the Vote: {}.\nPlease try again.", err).red());
-                continue;
-            }
-        };
+    return Ok(Vote::For);
 
-        return Ok(vote);
-    }
 }
 
 

@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use colored::Colorize;
+use batravot_lib::Vote::For;
 use crate::ballots::Ballot;
 
 
@@ -31,6 +32,11 @@ pub(crate) fn read_ballots_from_file(file_path: String) -> Result<Vec<Ballot>, S
         // Parse the elements of the line and create a ballot
         let ballot = Ballot::from_iter(line_split)
             .map_err(|err| format!("Error parsing the ballot at line {}: {}", i, err))?;
+
+        // Check if the ballot contains a For vote as it is the only one supported type in MultiSig
+        if ballot.vote != For {
+            return Err(format!("Error parsing the ballot at line {}: Only For votes are supported in MultiSig", i));
+        }
 
         // Add the ballot to the vector
         ballots.push(ballot);

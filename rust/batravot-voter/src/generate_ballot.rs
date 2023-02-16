@@ -56,27 +56,9 @@ pub(crate) fn generate_ballot(rng: &mut impl Rng) -> Result<(), String> {
 /// It will return the vote as a `Vote` enum
 fn get_vote() -> Result<Vote, String> {
 
-    // Ask the user to select how they want to vote
-    println!("\nHow do you want to vote?");
-    println!("[+] For");
-    println!("[-] against");
-    loop {
-        let mut vote = String::new();
-        std::io::stdin().read_line(&mut vote)
-            .map_err(|err| format!("Error reading vote choice: {}", err))?;
+    // As we are in the MultiSig mode, we only support For votes
+    println!("Treating all votes as `For [+]` votes due to MultiSig mode");
+    println!("If you want to vote `Against [-]`, please do generate the ballot as `Not Voting` = `Against [-]`");
 
-        // Convert the vote to lowercase
-        let vote = vote.to_lowercase();
-
-        // Check if the vote is yes or no
-        return Ok(if vote.contains("for") || vote.contains("+") {
-            Vote::For
-        } else if vote.contains("against") || vote.contains("-") {
-            Vote::Against
-        } else {
-            eprintln!("{}", "Invalid vote choice. Please try again".red());
-            continue;
-        });
-    }
-
+    Ok(Vote::For)
 }
