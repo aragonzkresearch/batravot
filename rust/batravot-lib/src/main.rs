@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, stdout, Write};
+use std::path::Path;
 use ark_ff::{BigInteger256};
 use ark_std::rand::Rng;
 use ark_std::{UniformRand};
@@ -11,6 +12,7 @@ use web3::types::{Address, H160};
 use batravot_lib;
 use batravot_lib::{G1, ScalarField, SchnorrKnowledgeProof, representation::JavaScriptRepresentable, Vote, ElectionSpecifiers};
 use batravot_lib::batcher::generate_batched_election_proof;
+use batravot_lib::representation::{Representable, RepresentationConfig};
 use batravot_lib::verifier::validate_election_proof;
 use batravot_lib::voter::{generate_public_key, generate_vote_proof};
 
@@ -31,6 +33,15 @@ fn main() {
 
     // Randomness we will use in our simulation
     let mut rng = ark_std::test_rng();
+    
+    // If there is a --solidity flag, we will print in a solidity format
+    // Otherwise, we will print in a JavaScript format
+    let mut representation = RepresentationConfig::JavaScript;
+    for arg in std::env::args() {
+        if arg == "--solidity" {
+            representation = RepresentationConfig::Solidity;
+        }
+    }
 
     // Ask user for the number of voters and their voting preferences
     let (for_voter_amount, against_voter_amount) = get_election_setup();
@@ -39,28 +50,12 @@ fn main() {
     let election_id = BigInteger256::from(1);
 
     // Simulate the election
-    simulate_election(&mut rng, for_voter_amount, against_voter_amount, election_id);
-
-
+    simulate_election(&mut rng, for_voter_amount, against_voter_amount, election_id, representation);
+    
 }
 
 fn get_election_setup() -> (u32, u32) {
-// Get the amount of voters to simulate from input
-    println!("Enter the amount of election voters:");
-    let voter_amount : u32;
-
-    loop {
-        let mut amount_raw = String::new();
-        io::stdin().read_line(&mut amount_raw).expect("Failed to read line");
-        voter_amount = match amount_raw.trim().parse() {
-            Ok(num) => num,
-            Err(_) => {
-                println!("Please enter a valid number");
-                continue;
-            }
-        };
-        break;
-    }
+    // As we are running in a MultiSig mode, we only need to care about the amount of `FOR` voters
 
     println!("Enter the amount of `FOR` election voters:");
     let for_voter_amount : u32;
@@ -79,11 +74,12 @@ fn get_election_setup() -> (u32, u32) {
     }
 
 
-    (for_voter_amount, voter_amount - for_voter_amount)
+    // We don't need to ask for the amount of `AGAINST` voters, as we do not need them for the MultiSig mode
+    (for_voter_amount, 0)
 }
 
 
-fn simulate_election(mut rng: &mut StdRng, for_voter_amount: u32, against_voter_amount: u32, election_id: BigInteger256) {
+fn simulate_election(mut rng: &mut StdRng, for_voter_amount: u32, against_voter_amount: u32, election_id: BigInteger256, repr_conf: RepresentationConfig) {
     let specifiers = ElectionSpecifiers::new(election_id);
 
     let mut for_voters = Vec::new();
@@ -124,60 +120,45 @@ fn simulate_election(mut rng: &mut StdRng, for_voter_amount: u32, against_voter_
 
     println!("Checks passed, printing the details of the election...");
 
-    // Print the election details to a file if the size is bigger than 100 voters
-    if voters.len() > 100 {
+    // Print the election details to a file if the size is bigger than 20 voters
+    let mut out_writer: Box<dyn Write> = if voters.len() > 20 {
         println!("The election is too big to print, printing to a file instead");
-        let mut file = File::create("election_details.txt").unwrap();
-        let mut writer = BufWriter::new(&file);
-
-
-        write!(&mut writer, "Election ID: {}", election_id).unwrap();
-        write!(&mut writer, "Voters:\n").unwrap();
-        for voter in voters.iter() {
-            let eth_prk = format!("\"0x{}\"", hex::encode(voter.eth_private_key.as_ref()));
-            write!(&mut writer, "[{}, {}, {}, {}, {}]", voter.tokens, eth_prk, voter.eth_address.javascript_repr(), voter.pbk.javascript_repr(), voter.key_proof.javascript_repr()).unwrap();
-            write!(&mut writer, ",").unwrap();
-        }
-        println!();
-
-
-        write!(&mut writer, "\nFor voters:\n [{}]\n", for_voters.iter().map(|voter| voter.eth_address.javascript_repr()).collect::<Vec<String>>().join(", ")).unwrap();
-        write!(&mut writer, "\nAgainst voters:\n [{}]\n", agaist_voters.iter().map(|voter| voter.eth_address.javascript_repr()).collect::<Vec<String>>().join(", ")).unwrap();
-
-
-        write!(&mut writer, "\nElection Proof:\n {}\n", election_proof.javascript_repr()).unwrap();
-
-
-        write!(&mut writer, "\nTotal votes: {}", for_voters.len() + agaist_voters.len()).unwrap();
-        write!(&mut writer, "\nFor votes: {}", for_voters.len()).unwrap();
-        write!(&mut writer, "\nTotal tokens: {}", voters.iter().map(|voter| voter.tokens).sum::<u32>()).unwrap();
-        write!(&mut writer, "\nFor tokens: {}", for_voters.iter().map(|voter| voter.tokens).sum::<u32>()).unwrap();
+        let file = File::create("election_details.txt").unwrap();
+        let writer = BufWriter::new(file);
+        Box::new(writer)
     } else {
-        println!("Election Id:\n {}\n", election_id.javascript_repr());
-        println!("Specifiers:\n {}\n", specifiers.javascript_repr());
+        Box::new(stdout())
+    };
 
-        println!("Voters:\n");
+    // Rewrite all the printlns to write to the file
+    out_writer.write(format!("Election Id:\n {}\n", election_id.repr(&repr_conf)).as_bytes()).unwrap();
+    out_writer.write(format!("Specifiers:\n {}\n", specifiers.repr(&repr_conf)).as_bytes()).unwrap();
 
-        for voter in voters.iter() {
-            let eth_prk = format!("\"0x{}\"", hex::encode(voter.eth_private_key.as_ref()));
-            print!("[{}, {}, {}, {}, {}]", voter.tokens, eth_prk, voter.eth_address.javascript_repr(), voter.pbk.javascript_repr(), voter.key_proof.javascript_repr());
-            print!(",");
-        }
-        println!();
+    out_writer.write(format!("Voters:\n").as_bytes()).unwrap();
 
 
-        println!("For voters:\n [{}]\n", for_voters.iter().map(|voter| voter.eth_address.javascript_repr()).collect::<Vec<String>>().join(", "));
-        println!("Against voters:\n [{}]\n", agaist_voters.iter().map(|voter| voter.eth_address.javascript_repr()).collect::<Vec<String>>().join(", "));
-
-
-        println!("Election Proof:\n {}\n", election_proof.javascript_repr());
-
-
-        println!("Total votes: {}", for_voters.len() + agaist_voters.len());
-        println!("For votes: {}", for_voters.len());
-        println!("Total tokens: {}", voters.iter().map(|voter| voter.tokens).sum::<u32>());
-        println!("For tokens: {}", for_voters.iter().map(|voter| voter.tokens).sum::<u32>());
+    for (i, voter) in voters.iter().enumerate() {
+        out_writer.write(format!("(voters[{i}], pks[{i}], sigs[{i}]) = ({}, {}, {});\n", voter.eth_address.repr(&repr_conf), voter.pbk.repr(&repr_conf), voter.key_proof.repr(&repr_conf)).as_bytes()).unwrap();
     }
+
+    out_writer.write(format!("\n").as_bytes()).unwrap();
+
+
+
+    out_writer.write(format!("For voters:\n [{}]\n", for_voters.iter().map(|voter| voter.eth_address.repr(&repr_conf)).collect::<Vec<String>>().join(", ")).as_bytes()).unwrap();
+
+    out_writer.write(format!("Against voters:\n [{}]\n", agaist_voters.iter().map(|voter| voter.eth_address.repr(&repr_conf)).collect::<Vec<String>>().join(", ")).as_bytes()).unwrap();
+
+
+    // The rest of the printlns are not that big, so we can just print them normally
+    println!("Election Proof:\n {}\n", election_proof.repr(&repr_conf));
+
+
+    println!("Total votes: {}", for_voters.len() + agaist_voters.len());
+    println!("For votes: {}", for_voters.len());
+    println!("Total tokens: {}", voters.iter().map(|voter| voter.tokens).sum::<u32>());
+    println!("For tokens: {}", for_voters.iter().map(|voter| voter.tokens).sum::<u32>());
+
 }
 
 

@@ -93,17 +93,20 @@ contract MultiSigBatRaVot {
      */
     function createElection(string calldata topic, uint256 threshold, uint256[2] memory yesG1SpecifierRaw, uint256[4] memory yesG2SpecifierRaw) public returns (uint256) {
 
-        // Convert the raw specifiers into BN254.G1 and BN254.G2 points
-        BN254.G1 memory yesG1Specifier = BN254.G1(yesG1SpecifierRaw[0], yesG1SpecifierRaw[1]);
-        BN254.G2 memory yesG2Specifier = BN254.G2([yesG2SpecifierRaw[0], yesG2SpecifierRaw[1]], [yesG2SpecifierRaw[2], yesG2SpecifierRaw[3]]);
 
         // Generate a new election
-        Specifiers memory specifiers = Specifiers(yesG1Specifier, yesG2Specifier);
         // Add election to all elections
         uint256 electionId = electionCount;
+
         elections[electionId].topic = topic;
         elections[electionId].threshold = threshold;
-        elections[electionId].specifiers = specifiers;
+
+        elections[electionId].specifiers.yesG1.X = yesG1SpecifierRaw[0];
+        elections[electionId].specifiers.yesG1.Y = yesG1SpecifierRaw[1];
+        elections[electionId].specifiers.yesG2.X[0] = yesG2SpecifierRaw[0];
+        elections[electionId].specifiers.yesG2.X[1] = yesG2SpecifierRaw[1];
+        elections[electionId].specifiers.yesG2.Y[0] = yesG2SpecifierRaw[2];
+        elections[electionId].specifiers.yesG2.Y[1] = yesG2SpecifierRaw[3];
         // Note that the state is set to pending by default
 
         // Increment the election count

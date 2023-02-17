@@ -1,10 +1,33 @@
 use ark_ec::ProjectiveCurve;
 use ark_ec::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
 use ark_ff::{BigInteger, BigInteger256, PrimeField};
+use sha3::{Keccak256, Digest};
 use web3::types::Address;
 
 use crate::el_curve::{curve, CurveBaseField, CurveExtensionField, ScalarField};
 use crate::{ElectionSpecifiers, G1, G2, SchnorrKnowledgeProof};
+
+// Representation configuration that selects in which representation to print the data
+pub enum RepresentationConfig {
+    Solidity,
+    JavaScript,
+}
+
+
+
+/// Define a trait that is used to convert a complex type that implements the `JavaScriptRepresentable` and `SolidityRepresentable` traits
+/// to a string based on the `RepresentationConfig` enum
+pub trait Representable where Self: JavaScriptRepresentable + SolidityRepresentable {
+
+    /// A function that accepts any type that implements the `JavaScriptRepresentable` and `SolidityRepresentable` traits
+    /// and the `RepresentationConfig` enum and returns the data in the selected representation
+    fn repr(&self, config: &RepresentationConfig) -> String {
+        return match config {
+            RepresentationConfig::Solidity => self.solidity_repr(),
+            RepresentationConfig::JavaScript => self.javascript_repr(),
+        }
+    }
+}
 
 /// This trait is used to convert a complex type to a type that Solidity can understand
 pub trait SolidityRepresentable {
@@ -72,6 +95,7 @@ impl FromStrCustom for BigInteger256 {
         Ok(repr)
     }
 }
+impl Representable for BigInteger256 {}
 
 
 
@@ -108,6 +132,7 @@ impl FromStrCustom for ScalarField {
         Ok(scalar_field)
     }
 }
+impl Representable for ScalarField {}
 
 impl SolidityRepresentable for CurveBaseField {
     fn solidity_repr(&self) -> String {
@@ -140,6 +165,7 @@ impl FromStrCustom for CurveBaseField {
         Ok(CurveBaseField::from(repr))
     }
 }
+impl Representable for CurveBaseField {}
 
 impl SolidityRepresentable for GroupProjective<curve::g1::Parameters> {
     fn solidity_repr(&self) -> String {
@@ -181,6 +207,7 @@ impl FromStrCustom for GroupProjective<curve::g1::Parameters> {
         Ok(point)
     }
 }
+impl Representable for GroupProjective<curve::g1::Parameters> {}
 
 
 impl SolidityRepresentable for GroupProjective<curve::g2::Parameters> {
@@ -236,10 +263,12 @@ impl FromStrCustom for GroupProjective<curve::g2::Parameters> {
         Ok(point)
     }
 }
+impl Representable for GroupProjective<curve::g2::Parameters> {}
 
 impl SolidityRepresentable for SchnorrKnowledgeProof{
     fn solidity_repr(&self) -> String {
-        format!("[{},{}]", self.t.solidity_repr(), self.s.solidity_repr())
+        let t_affine = self.t.into_affine();
+        format!("[{}, {}, {}]", t_affine.x.solidity_repr(), t_affine.y.solidity_repr(), self.s.solidity_repr())
     }
 }
 impl JavaScriptRepresentable for SchnorrKnowledgeProof {
@@ -249,6 +278,7 @@ impl JavaScriptRepresentable for SchnorrKnowledgeProof {
         format!("[{}, {}, {}]", t_affine.x.javascript_repr(), t_affine.y.javascript_repr(), self.s.javascript_repr())
     }
 }
+impl Representable for SchnorrKnowledgeProof {}
 
 
 impl SolidityRepresentable for ElectionSpecifiers {
@@ -261,11 +291,38 @@ impl JavaScriptRepresentable for ElectionSpecifiers {
         format!("{}, {}, {}, {}", self.forr.0.javascript_repr(), self.forr.1.javascript_repr(), self.against.0.javascript_repr(), self.against.1.javascript_repr())
     }
 }
+impl Representable for ElectionSpecifiers {}
 
 
 impl SolidityRepresentable for Address {
     fn solidity_repr(&self) -> String {
-        format!("0x{}", hex::encode(self.0))
+        // Convert the default representation into Ethereum address format
+        // To do so, get bytes, apply keccak256, take the first 20 bytes
+        // And then compare the result with the original address
+        // Where the original address has hex representation of a, b, c, d, e, f
+        // And the result has hex representation of 8, 9, a, b, c, d, e, f
+        // We replace the original address hex with a capital corresponding to A, B, C, D, E, F
+        // And then add 0x in the beginning
+        let mut hex_address = hex::encode(self.0);
+        // Calculate the keccak256 hash of the hex_address
+        let result = Keccak256::digest(hex_address.as_bytes());
+        // Take the first 20 bytes
+        let mut result = result.to_vec();
+        result.truncate(20);
+        // Convert the result to hex
+        let mut hex_result = hex::encode(result);
+        // Replace the characters of the original address with the corresponding capital letters in accordance with the rule
+        for i in 0..40 {
+            let c = hex_result.chars().nth(i).unwrap();
+            if c == '8' || c == '9' || c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e' || c == 'f' {
+                // Get the character at the same index in the original address
+                let org_c = hex_address.chars().nth(i).unwrap().to_uppercase().to_string();
+                // Replace the character in the original address with the capitalised version
+                hex_address.replace_range(i..i+1, &org_c);
+            }
+        }
+
+        format!("0x{}", hex_address)
     }
 }
 impl JavaScriptRepresentable for Address {
@@ -285,6 +342,7 @@ impl FromStrCustom for Address {
         Ok(Address::from_slice(bytes.as_slice()))
     }
 }
+impl Representable for Address {}
 
 #[cfg(test)]
 mod test_representations {
@@ -380,6 +438,13 @@ mod test_representations {
         let address_str = address.solidity_repr();
         let address_parsed = Address::from_str_c(&address_str).unwrap();
         assert_eq!(address, address_parsed);
+    }
+
+    #[test]
+    fn can_parse_and_generate_checksum_address() {
+        let str_address = "0x48D5F0b15c8Fd0F25B8aaEd22b567F8CD3fc0ac2";
+        let address = Address::from_str_c(str_address).unwrap();
+        assert_eq!(address.solidity_repr(), str_address);
     }
 
 
