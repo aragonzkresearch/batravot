@@ -2,9 +2,9 @@ name: SmartContracts
 on: [ push, pull_request ]
 
 env:
-  PRIVATE_KEY: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
-  ETHERSCAN_API_KEY: 1234567890
-  SEPOLIA_API_URL: https://api.sepolia.com
+  PRIVATE_KEY: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b # Dummy Private Key
+  ETHERSCAN_API_KEY: "1234567890F" # Dummy Etherscan API key
+  SEPOLIA_API_URL: https://api.sepolia.com # Dummy API URL
 
 jobs:
   test-smart-contracts:
@@ -23,10 +23,16 @@ jobs:
         run: |
           cd rust/solidity
           npm install
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - name: Run Smart Contract tests
         run: |
           cd rust/solidity
           npx hardhat test
+          forge test -vvv
+
   test-rust:
     name: Test Rust
     runs-on: ubuntu-latest

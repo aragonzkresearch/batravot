@@ -9,3 +9,13 @@ rust/solidity/artifacts/
 rust/solidity/cache/
 
 */.DS_Store
+
+# Compiler files
+rust/solidity/cache
+rust/solidity/out/
+
+# Ignores development broadcast logs
+rust/solidity/broadcast
+
+# Dotenv file
+.env

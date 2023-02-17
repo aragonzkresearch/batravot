@@ -34,22 +34,3 @@ library SchnorrKnowledgeProof {
         return lhs.X == rhs.X && lhs.Y == rhs.Y;
     }
 }
-
-contract SchnorrKnowledgeProofTest  {
-
-    /**
-     * Check that Hashing of multiple arguments works
-     */
-    function hashTest(BN254.G1 memory pubKey, SchnorrKnowledgeProof.Proof memory proof, uint256 expectedHash) public view returns (bool) {
-        uint256 hash = uint256(keccak256(abi.encode(proof.t.X, proof.t.Y, pubKey.X, pubKey.Y))) % BN254.R;
-        
-        return hash == expectedHash;
-    }
-
-    /**
-      * Check that the contract receives the correct signature for the given public key
-      */
-    function testVerify(BN254.G1 memory pubKey, SchnorrKnowledgeProof.Proof memory proof) public view returns (bool) {
-        return SchnorrKnowledgeProof.verify(pubKey, proof);
-    }
-}
